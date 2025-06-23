@@ -6,7 +6,7 @@ from functools import partial
 import torch
 
 from torch.optim import AdamW
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from torch.backends.mps import is_available as mps_is_available
 from torch.cuda import is_available as cuda_is_available, is_bf16_supported
 from torch.amp import autocast
@@ -119,7 +119,9 @@ def main():
     training = new_dataset(split="train")
     testing = new_dataset(split="test")
 
-    id2label = training.label_indices_to_terms
+    training = Subset(training, list(range(2000)))
+
+    id2label = testing.label_indices_to_terms
 
     new_dataloader = partial(
         DataLoader,
@@ -133,7 +135,7 @@ def main():
 
     config = {
         "id2label": id2label,
-        "label2id": training.terms_to_label_indices,
+        "label2id": testing.terms_to_label_indices,
     }
 
     model = ESMGOTermClassifier(model, id2label)
@@ -224,9 +226,10 @@ def main():
                 y = y.to(args.device, non_blocking=True)
 
                 with torch.no_grad():
-                    logits, _ = model.forward(x)
+                    with amp_context:
+                        logits, _ = model.forward(x)
 
-                    y_prob = torch.sigmoid(logits)
+                        y_prob = torch.sigmoid(logits)
 
                 precision_metric.update(y_prob, y)
                 recall_metric.update(y_prob, y)
