@@ -255,7 +255,7 @@ def main():
         if epoch % args.checkpoint_interval == 0:
             checkpoint = {
                 "epoch": epoch,
-                "tokenizer": model.tokenizer,
+                "tokenizer": model.base.tokenizer,
                 "config": config,
                 "model": model.state_dict(),
                 "optimizer": optimizer.state_dict(),
