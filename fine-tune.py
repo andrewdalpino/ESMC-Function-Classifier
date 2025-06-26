@@ -16,9 +16,9 @@ from torchmetrics.classification import BinaryPrecision, BinaryRecall
 
 from torch.utils.tensorboard import SummaryWriter
 
-from esm.models.esmc import ESMC
+from esm.tokenization import EsmSequenceTokenizer
 
-from model import ESMGOTermClassifier
+from model import EsmcGoTermClassifier
 
 from data import AmiGO
 
@@ -107,12 +107,12 @@ def main():
 
     logger = SummaryWriter(args.run_dir_path)
 
-    model = ESMC.from_pretrained(args.base_model)
+    tokenizer = EsmSequenceTokenizer()
 
     new_dataset = partial(
         AmiGO,
         subset=args.dataset_subset,
-        tokenizer=model.tokenizer,
+        tokenizer=tokenizer,
         context_length=args.context_length,
     )
 
@@ -133,16 +133,16 @@ def main():
     train_loader = new_dataloader(training, shuffle=True)
     test_loader = new_dataloader(testing)
 
-    config = {
-        "id2label": id2label,
-        "label2id": testing.terms_to_label_indices,
-    }
-
-    model = ESMGOTermClassifier(model, id2label)
+    model = EsmcGoTermClassifier.from_esm_pretrained(
+        args.base_model,
+        tokenizer=tokenizer,
+        id2label=id2label,
+        use_flash_attn="cuda" in args.device,
+    )
 
     model.freeze_base()
 
-    model.unfreeze_last_k_base_layers(args.unfreeze_last_k_layers)
+    model.unfreeze_last_k_encoder_layers(args.unfreeze_last_k_layers)
 
     if "cuda" in args.device:
         model = torch.compile(model)
@@ -255,8 +255,7 @@ def main():
         if epoch % args.checkpoint_interval == 0:
             checkpoint = {
                 "epoch": epoch,
-                "tokenizer": model.base.tokenizer,
-                "config": config,
+                "tokenizer": tokenizer,
                 "model": model.state_dict(),
                 "optimizer": optimizer.state_dict(),
             }

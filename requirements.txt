@@ -7,5 +7,6 @@ optimum==1.25.3
 tensorboard==2.19.0
 obonet==1.1.1
 networkx==3.4.2
+matplotlib==3.10.3
 PyQT5==5.15.11
 tqdm==4.67.1

@@ -8,6 +8,7 @@ from torch.utils.data import Dataset
 
 from esm.tokenization import EsmSequenceTokenizer
 
+
 class AmiGO(Dataset):
     """
     A collection of high-quality protein sequences and their associated gene ontology terms
