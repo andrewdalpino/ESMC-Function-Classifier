@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 
 import torch
 
-from model import ESMGOTermClassifier
+from model import EsmcGoTermClassifier
 
 from torch.cuda import is_available as cuda_is_available
 
@@ -63,11 +63,9 @@ def main():
         args.checkpoint_path, map_location="cpu", weights_only=False
     )
 
-    tokenizer = checkpoint["tokenizer"]
+    model_args = checkpoint["model_args"]
 
-    config = checkpoint["config"]
-
-    model = ESMGOTermClassifier(config)
+    model = EsmcGoTermClassifier.from_esm_pretrained(model_args)
 
     print("Compiling model ...")
     model = torch.compile(model)
@@ -94,7 +92,7 @@ def main():
     while True:
         sequence = input("Enter a sequence: ").replace(" ", "").replace("\n", "")
 
-        out = tokenizer(
+        out = model.tokenizer(
             sequence,
             max_length=args.context_length,
             truncation=True,
@@ -112,7 +110,7 @@ def main():
         probabilities = torch.sigmoid(outputs.logits.squeeze(0))
 
         go_term_probabilities = {
-            config.id2label[index]: probability.item()
+            model.id2label[index]: probability.item()
             for index, probability in enumerate(probabilities)
             if probability > args.top_p
         }

@@ -6,7 +6,7 @@ from functools import partial
 import torch
 
 from torch.optim import AdamW
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 from torch.backends.mps import is_available as mps_is_available
 from torch.cuda import is_available as cuda_is_available, is_bf16_supported
 from torch.amp import autocast
@@ -19,16 +19,12 @@ from torch.utils.tensorboard import SummaryWriter
 from esm.tokenization import EsmSequenceTokenizer
 
 from model import EsmcGoTermClassifier
-
 from data import AmiGO
 
 from tqdm import tqdm
 
 
-AVAILABLE_BASE_MODELS = {
-    "esmc_300m",
-    "esmc_600m",
-}
+AVAILABLE_BASE_MODELS = {"esmc_300m", "esmc_600m"}
 
 
 def main():
@@ -46,7 +42,7 @@ def main():
     )
     parser.add_argument("--num_dataset_processes", default=1, type=int)
     parser.add_argument("--context_length", default=2048, type=int)
-    parser.add_argument("--unfreeze_last_k_layers", default=0, type=int)
+    parser.add_argument("--unfreeze_last_k_layers", default=6, type=int)
     parser.add_argument("--learning_rate", default=5e-4, type=float)
     parser.add_argument("--max_gradient_norm", default=1.0, type=float)
     parser.add_argument("--batch_size", default=8, type=int)
@@ -119,10 +115,6 @@ def main():
     training = new_dataset(split="train")
     testing = new_dataset(split="test")
 
-    training = Subset(training, list(range(2000)))
-
-    id2label = testing.label_indices_to_terms
-
     new_dataloader = partial(
         DataLoader,
         batch_size=args.batch_size,
@@ -133,12 +125,13 @@ def main():
     train_loader = new_dataloader(training, shuffle=True)
     test_loader = new_dataloader(testing)
 
-    model = EsmcGoTermClassifier.from_esm_pretrained(
-        args.base_model,
-        tokenizer=tokenizer,
-        id2label=id2label,
-        use_flash_attn="cuda" in args.device,
-    )
+    model_args = {
+        "model_name": args.base_model,
+        "tokenizer": tokenizer,
+        "id2label": training.label_indices_to_terms,
+    }
+
+    model = EsmcGoTermClassifier.from_esm_pretrained(**model_args)
 
     model.freeze_base()
 
@@ -148,6 +141,9 @@ def main():
         model = torch.compile(model)
 
         print("Model compiled")
+
+    print(f"Number of parameters: {model.num_params:,}")
+    print(f"Number of trainable parameters: {model.num_trainable_parameters:,}")
 
     model = model.to(args.device)
 
@@ -171,8 +167,6 @@ def main():
         print("Previous checkpoint resumed successfully")
 
     model.train()
-
-    print(f"Number of trainable parameters: {model.num_trainable_parameters:,}")
 
     print("Fine-tuning ...")
 
@@ -225,11 +219,10 @@ def main():
                 x = x.to(args.device, non_blocking=True)
                 y = y.to(args.device, non_blocking=True)
 
-                with torch.no_grad():
-                    with amp_context:
-                        logits, _ = model.forward(x)
+                with torch.no_grad(), amp_context:
+                    logits, _ = model.forward(x)
 
-                        y_prob = torch.sigmoid(logits)
+                    y_prob = torch.sigmoid(logits)
 
                 precision_metric.update(y_prob, y)
                 recall_metric.update(y_prob, y)
@@ -255,7 +248,7 @@ def main():
         if epoch % args.checkpoint_interval == 0:
             checkpoint = {
                 "epoch": epoch,
-                "tokenizer": tokenizer,
+                "model_args": model_args,
                 "model": model.state_dict(),
                 "optimizer": optimizer.state_dict(),
             }

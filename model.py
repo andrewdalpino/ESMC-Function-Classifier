@@ -12,6 +12,8 @@ from esm.tokenization import EsmSequenceTokenizer
 from esm.models.esmc import ESMC
 from esm.layers.blocks import SwiGLU
 
+from huggingface_hub import PyTorchModelHubMixin
+
 
 PRETRAINED_CONFIGS = {
     "esmc_300m": {
@@ -32,7 +34,7 @@ PRETRAINED_CHECKPOINT_PATHS = {
 }
 
 
-class EsmcGoTermClassifier(ESMC):
+class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     def __init__(
         self,
         tokenizer: EsmSequenceTokenizer,
@@ -88,6 +90,14 @@ class EsmcGoTermClassifier(ESMC):
         model.load_state_dict(state_dict, strict=False)
 
         return model
+    
+    @property
+    def num_params(self) -> int:
+        return sum(p.numel() for p in self.parameters())
+    
+    @property
+    def num_trainable_parameters(self) -> int:
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
     def freeze_base(self):
         for module in (self.embed, self.transformer, self.sequence_head):
@@ -99,10 +109,6 @@ class EsmcGoTermClassifier(ESMC):
             for module in self.transformer.blocks[-k:]:
                 for param in module.parameters():
                     param.requires_grad = True
-
-    @property
-    def num_trainable_parameters(self) -> int:
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
     def forward(
         self,
