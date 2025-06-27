@@ -73,7 +73,7 @@ class AmiGO(Dataset):
 
         return {index: term for term, index in self.terms_to_label_indices.items()}
 
-    def __getitem__(self, index: int) -> tuple[Tensor, Tensor, Tensor]:
+    def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
         sample = self.dataset[index]
 
         out = self.tokenizer(

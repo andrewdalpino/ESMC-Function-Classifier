@@ -5,6 +5,7 @@ from functools import partial
 
 import torch
 
+from torch.nn import BCEWithLogitsLoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torch.backends.mps import is_available as mps_is_available
@@ -147,6 +148,8 @@ def main():
 
     model = model.to(args.device)
 
+    loss_function = BCEWithLogitsLoss()
+
     optimizer = AdamW(model.parameters(), lr=args.learning_rate)
 
     precision_metric = BinaryPrecision().to(args.device)
@@ -181,7 +184,9 @@ def main():
             y = y.to(args.device, non_blocking=True)
 
             with amp_context:
-                _, loss = model.forward(x, labels=y)
+                y_pred = model.forward(x)
+
+                loss = loss_function(y_pred, y)
 
                 scaled_loss = loss / args.gradient_accumulation_steps
 
@@ -220,9 +225,9 @@ def main():
                 y = y.to(args.device, non_blocking=True)
 
                 with torch.no_grad(), amp_context:
-                    logits, _ = model.forward(x)
+                    y_pred = model.forward(x)
 
-                    y_prob = torch.sigmoid(logits)
+                    y_prob = torch.sigmoid(y_pred)
 
                 precision_metric.update(y_prob, y)
                 recall_metric.update(y_prob, y)
