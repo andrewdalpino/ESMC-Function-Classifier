@@ -167,8 +167,7 @@ class MLPClassifier(Module):
         super().__init__()
 
         self.linear1 = Linear(input_features, 2 * input_features, bias=False)
-        self.linear2 = Linear(input_features, 2 * input_features, bias=False)
-        self.linear3 = Linear(input_features, num_classes, bias=False)
+        self.linear2 = Linear(input_features, num_classes, bias=False)
 
         self.swiglu = SwiGLU()
 
@@ -176,7 +175,5 @@ class MLPClassifier(Module):
         z = self.linear1(x)
         z = self.swiglu(z)
         z = self.linear2(z)
-        z = self.swiglu(z)
-        z = self.linear3(z)
 
         return z
