@@ -58,9 +58,12 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
         checkpoint_path = PRETRAINED_CHECKPOINT_PATHS.get(model_name)
 
+        # Compensate for disjoint naming conventions.
         esm_model_name = model_name.replace("_", "-")
 
-        state_dict = torch.load(data_root(esm_model_name) / checkpoint_path)
+        checkpoint_path = data_root(esm_model_name) / checkpoint_path
+
+        state_dict = torch.load(checkpoint_path)
 
         model.load_state_dict(state_dict, strict=False)
 
@@ -75,6 +78,9 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         id2label: dict[int, str],
         use_flash_attn: bool = True,
     ) -> None:
+        if len(id2label) < 1:
+            raise ValueError("id2label must contain at least one label.")
+
         super().__init__(
             d_model=embedding_dimensions,
             n_heads=num_heads,
@@ -85,15 +91,22 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
         num_classes = len(id2label)
 
-        self.classifier = ClassifierHead(embedding_dimensions, num_classes)
+        self.classifier = MLPClassifier(embedding_dimensions, num_classes)
 
         self.id2label = id2label
-        self.num_classes = num_classes
-    
+
+    @property
+    def label2id(self) -> dict[str, int]:
+        return {label: index for index, label in self.id2label.items()}
+
+    @property
+    def num_classes(self) -> int:
+        return len(self.id2label)
+
     @property
     def num_params(self) -> int:
         return sum(p.numel() for p in self.parameters())
-    
+
     @property
     def num_trainable_parameters(self) -> int:
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
@@ -110,9 +123,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
                     param.requires_grad = True
 
     def forward(
-        self,
-        sequence_tokens: Tensor | None = None,
-        sequence_id: Tensor | None = None,
+        self, sequence_tokens: Tensor, sequence_id: Tensor | None = None
     ) -> tuple[Tensor, Tensor]:
         out = super().forward(
             sequence_tokens=sequence_tokens,
@@ -127,10 +138,18 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         return z
 
     @torch.no_grad()
-    def predict_terms(self, sequence_tokens: Tensor, top_p: float = 0.5) -> dict:
-        logits = self.forward(sequence_tokens=sequence_tokens)
+    def predict_terms(
+        self,
+        sequence_tokens: Tensor,
+        sequence_id: Tensor | None = None,
+        top_p: float = 0.5,
+    ) -> dict:
+        z = self.forward(
+            sequence_tokens=sequence_tokens,
+            sequence_id=sequence_id,
+        )
 
-        probabilities = torch.sigmoid(logits)
+        probabilities = torch.sigmoid(z)
 
         go_term_probabilities = {
             self.id2label[index]: probability.item()
@@ -141,22 +160,23 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         return go_term_probabilities
 
 
-class ClassifierHead(Module):
-    """
-    A simple 2-layer classification head with SwiGLU activation.
-    """
-    
+class MLPClassifier(Module):
+    """A simple 2-layer classification head with SwiGLU activation."""
+
     def __init__(self, input_features: int, num_classes: int):
         super().__init__()
 
         self.linear1 = Linear(input_features, 2 * input_features, bias=False)
-        self.linear2 = Linear(input_features, num_classes, bias=False)
+        self.linear2 = Linear(input_features, 2 * input_features, bias=False)
+        self.linear3 = Linear(input_features, num_classes, bias=False)
 
-        self.activation = SwiGLU()
+        self.swiglu = SwiGLU()
 
     def forward(self, x: Tensor) -> Tensor:
         z = self.linear1(x)
-        z = self.activation(z)
+        z = self.swiglu(z)
         z = self.linear2(z)
+        z = self.swiglu(z)
+        z = self.linear3(z)
 
         return z

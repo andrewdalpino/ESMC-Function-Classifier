@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 
 from torch.utils.data import Dataset
+from torch.nn.utils.rnn import pad_sequence
 
 from esm.tokenization import EsmSequenceTokenizer
 
@@ -26,7 +27,8 @@ class AmiGO(Dataset):
         subset: str,
         split: str,
         tokenizer: EsmSequenceTokenizer,
-        context_length: int,
+        min_sequence_length: int = 1,
+        max_sequence_length: int = 2048,
     ):
         super().__init__()
 
@@ -36,9 +38,14 @@ class AmiGO(Dataset):
         if split not in self.AVAILABLE_SPLITS:
             raise ValueError(f"Split '{split}' is invalid.")
 
-        if context_length < 1:
+        if min_sequence_length < 1:
             raise ValueError(
-                f"Context length must be greater than 0, {context_length} given."
+                f"Min sequence length must be greater than 0, {min_sequence_length} given."
+            )
+
+        if min_sequence_length < 1:
+            raise ValueError(
+                f"Max sequence length must be greater than 0, {max_sequence_length} given."
             )
 
         dataset = load_dataset(self.DATASET_NAME, subset)
@@ -59,9 +66,15 @@ class AmiGO(Dataset):
 
         dataset = dataset[split]
 
+        dataset = dataset.filter(
+            lambda sample: len(sample["sequence"]) >= min_sequence_length
+            and len(sample["sequence"]) <= max_sequence_length
+        )
+
         self.dataset = dataset
         self.tokenizer = tokenizer
-        self.context_length = context_length
+        self.min_sequence_length = min_sequence_length
+        self.max_sequence_length = max_sequence_length
         self.terms_to_label_indices = terms_to_label_indices
         self.num_classes = num_classes
 
@@ -73,14 +86,30 @@ class AmiGO(Dataset):
 
         return {index: term for term, index in self.terms_to_label_indices.items()}
 
+    def collate_pad_right(self, batch):
+        """
+        Pads the sequences in the batch to the maximum sequence length on the right.
+        """
+
+        sequences = [sequence for sequence, _ in batch]
+
+        padded_sequences = pad_sequence(
+            sequences,
+            batch_first=True,
+            padding_value=self.tokenizer.pad_token_id,
+            padding_side="right",
+        )
+
+        labels = torch.stack([label for _, label in batch])
+
+        return padded_sequences, labels
+
     def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
         sample = self.dataset[index]
 
         out = self.tokenizer(
             sample["sequence"],
-            padding="max_length",
-            padding_side="right",
-            max_length=self.context_length,
+            max_length=self.max_sequence_length,
             truncation=True,
         )
 
@@ -96,7 +125,7 @@ class AmiGO(Dataset):
         x = torch.tensor(tokens, dtype=torch.int64)
         y = torch.tensor(labels, dtype=torch.float32)
 
-        assert x.size(0) == self.context_length
+        assert x.size(0) <= self.max_sequence_length
         assert y.size(0) == self.num_classes
 
         return x, y

@@ -42,7 +42,8 @@ def main():
         "--dataset_subset", default="all", choices=AmiGO.AVAILABLE_SUBSETS
     )
     parser.add_argument("--num_dataset_processes", default=1, type=int)
-    parser.add_argument("--context_length", default=2048, type=int)
+    parser.add_argument("--min_sequence_length", default=1, type=int)
+    parser.add_argument("--max_sequence_length", default=2048, type=int)
     parser.add_argument("--unfreeze_last_k_layers", default=6, type=int)
     parser.add_argument("--learning_rate", default=5e-4, type=float)
     parser.add_argument("--max_gradient_norm", default=1.0, type=float)
@@ -110,7 +111,8 @@ def main():
         AmiGO,
         subset=args.dataset_subset,
         tokenizer=tokenizer,
-        context_length=args.context_length,
+        min_sequence_length=args.min_sequence_length,
+        max_sequence_length=args.max_sequence_length,
     )
 
     training = new_dataset(split="train")
@@ -119,6 +121,7 @@ def main():
     new_dataloader = partial(
         DataLoader,
         batch_size=args.batch_size,
+        collate_fn=training.collate_pad_right,
         pin_memory=all(device not in args.device for device in ("cpu", "mps")),
         num_workers=args.num_dataset_processes,
     )
@@ -137,11 +140,6 @@ def main():
     model.freeze_base()
 
     model.unfreeze_last_k_encoder_layers(args.unfreeze_last_k_layers)
-
-    if "cuda" in args.device:
-        model = torch.compile(model)
-
-        print("Model compiled")
 
     print(f"Number of parameters: {model.num_params:,}")
     print(f"Number of trainable parameters: {model.num_trainable_parameters:,}")
