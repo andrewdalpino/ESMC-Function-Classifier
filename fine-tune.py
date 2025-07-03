@@ -139,11 +139,12 @@ def main():
 
     model = EsmcGoTermClassifier.from_esm_pretrained(**model_args)
 
+    print(f"Number of parameters: {model.num_params:,}")
+
     model.freeze_base()
 
     model.unfreeze_last_k_encoder_layers(args.unfreeze_last_k_layers)
 
-    print(f"Number of parameters: {model.num_params:,}")
     print(f"Number of trainable parameters: {model.num_trainable_parameters:,}")
 
     model = model.to(args.device)

@@ -135,7 +135,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
             sequence_id=sequence_id,
         )
 
-        # Grab the classification token embeddings.
+        # Grab the classification token <CLS> embeddings.
         z = out.embeddings[:, 0, :]
 
         z = self.classifier.forward(z)
@@ -171,6 +171,7 @@ class MLPClassifier(Module):
     def __init__(self, embedding_dimensions: int, hidden_ratio: int, num_classes: int):
         super().__init__()
 
+        assert embedding_dimensions > 0, "embedding_dimensions must be greater than 0."
         assert hidden_ratio in {1, 2, 4}, "hidden_ratio must be one of {1, 2, 4}."
         assert num_classes > 0, "num_classes must be greater than 0."
 
