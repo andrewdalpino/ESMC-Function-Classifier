@@ -25,7 +25,7 @@ from data import AmiGOBoost
 from tqdm import tqdm
 
 
-AVAILABLE_BASE_MODELS = {"esmc_300m", "esmc_600m"}
+AVAILABLE_BASE_MODELS = EsmcGoTermClassifier.ESM_PRETRAINED_CONFIGS.keys()
 
 
 def main():
@@ -51,6 +51,7 @@ def main():
     parser.add_argument("--gradient_accumulation_steps", default=16, type=int)
     parser.add_argument("--num_epochs", default=40, type=int)
     parser.add_argument("--classifier_hidden_ratio", default=1, choices={1, 2, 4})
+    parser.add_argument("--use_flash_attention", default=True, type=bool)
     parser.add_argument("--eval_interval", default=2, type=int)
     parser.add_argument("--checkpoint_interval", default=2, type=int)
     parser.add_argument(
@@ -134,7 +135,7 @@ def main():
         "model_name": args.base_model,
         "id2label": training.label_indices_to_terms,
         "classifier_hidden_ratio": args.classifier_hidden_ratio,
-        "use_flash_attn": True,
+        "use_flash_attn": args.use_flash_attention,
     }
 
     model = EsmcGoTermClassifier.from_esm_pretrained(**model_args)
@@ -215,7 +216,7 @@ def main():
         print(
             f"Epoch {epoch}:",
             f"Cross Entropy: {average_cross_entropy:.5f},",
-            f"Gradient Norm: {average_gradient_norm:.4f}",
+            f"Gradient Norm: {average_gradient_norm:.5f}",
         )
 
         if epoch % args.eval_interval == 0:

@@ -43,9 +43,13 @@ pip install -r requirements.txt
 You'll need the code in this repository to load the pretrained model weights. Import the `EsmGoTermClassifier` class and call `from_pretrained()` with the name of the model you want to load from the HuggingFace Hub.
 
 ```python
+from esm.tokenization import EsmSequenceTokenizer
+
 from model import EsmcGoTermClassifier
 
 model_name = "andrewdalpino/ESMC-300M-Protein-Function"
+
+tokenizer = EsmSequenceTokenizer()
 
 model = EsmcGoTermClassifier.from_pretrained(model_name)
 ```

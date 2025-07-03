@@ -1,5 +1,6 @@
 import random
 from functools import partial
+from collections import defaultdict
 from copy import copy
 
 from argparse import ArgumentParser
@@ -22,7 +23,7 @@ matplotlib.use("qt5agg")
 
 def main():
     parser = ArgumentParser(
-        description="Predict the rank of the gene ontology (GO) terms associated with a protein sequence."
+        description="Predict the gene ontology (GO) subgraph associated with a protein sequence."
     )
 
     parser.add_argument(
@@ -65,6 +66,8 @@ def main():
 
     model_args = checkpoint["model_args"]
 
+    del model_args["tokenizer"]  # Remove tokenizer from model args.
+
     model = EsmcGoTermClassifier.from_esm_pretrained(**model_args)
 
     model = model.to(args.device)
@@ -106,19 +109,19 @@ def main():
 
         probabilities = torch.sigmoid(y_pred.squeeze(0))
 
-        go_term_probabilities = {
-            model.id2label[index]: probability.item()
-            for index, probability in enumerate(probabilities)
-            if probability > args.top_p
-        }
+        go_term_probabilities = defaultdict(
+            float,
+            {
+                model.id2label[index]: probability.item()
+                for index, probability in enumerate(probabilities)
+                if probability > args.top_p
+            },
+        )
 
         # Fix up the predictions by leveraging the GO DAG hierarchy.
         for go_term, parent_probability in copy(go_term_probabilities).items():
             for descendant in nx.descendants(graph, go_term):
-                if descendant in go_term_probabilities:
-                    child_probability = go_term_probabilities[descendant]
-                else:
-                    child_probability = 0.0
+                child_probability = go_term_probabilities[descendant]
 
                 go_term_probabilities[descendant] = max(
                     parent_probability,
