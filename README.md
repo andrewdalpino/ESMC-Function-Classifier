@@ -97,7 +97,7 @@ python fine-tune.py --checkpoint_path="./checkpoints/checkpoint.pt" --resume
 | --max_gradient_norm | 1.0 | float | Clip gradients above this threshold norm before stepping. |
 | --learning_rate | 5e-4 | float | The learning rate of the Adam optimizer. |
 | --num_epochs | 40 | int | The number of epochs to train for. |
-| --classifier_hidden_ratio | 1 | int | The ratio of hidden nodes to embedding dimensions in the classifier head. |
+| --classifier_hidden_ratio | 1 | {1, 2, 4} | The ratio of hidden nodes to embedding dimensions in the classifier head. |
 | --eval_interval | 2 | int | Evaluate the model after this many epochs on the testing set. |
 | --checkpoint_interval | 2 | int | Save the model parameters to disk every this many epochs. |
 | --checkpoint_path | "./checkpoints/checkpoint.pt" | string | The path to the training checkpoint. |

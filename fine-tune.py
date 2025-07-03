@@ -50,7 +50,7 @@ def main():
     parser.add_argument("--batch_size", default=8, type=int)
     parser.add_argument("--gradient_accumulation_steps", default=16, type=int)
     parser.add_argument("--num_epochs", default=40, type=int)
-    parser.add_argument("--classifier_hidden_ratio", default=1, type=int)
+    parser.add_argument("--classifier_hidden_ratio", default=1, choices={1, 2, 4})
     parser.add_argument("--eval_interval", default=2, type=int)
     parser.add_argument("--checkpoint_interval", default=2, type=int)
     parser.add_argument(
