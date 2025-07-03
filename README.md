@@ -16,7 +16,7 @@ The following pretrained models are available on HuggingFace Hub.
 
 | Name | Embedding Dim. | Attn. Heads | Encoder Layers | Context Length | Total Parameters |
 |---|---|---|---|---|---|
-| [andrewdalpino/ESMC-300M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-300M-Protein-Functio) | 960 | 15 | 30 | 2048 | 362M |
+| [andrewdalpino/ESMC-300M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-300M-Protein-Function) | 960 | 15 | 30 | 2048 | 362M |
 
 ## Cloning the Repo
 
