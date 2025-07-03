@@ -3,7 +3,6 @@ import torch
 from torch import Tensor
 from torch.nn import Module, Linear
 
-from esm.utils.constants.esm3 import data_root
 from esm.tokenization import EsmSequenceTokenizer
 from esm.models.esmc import ESMC
 from esm.layers.blocks import SwiGLU
@@ -11,30 +10,29 @@ from esm.layers.blocks import SwiGLU
 from huggingface_hub import PyTorchModelHubMixin
 
 
-PRETRAINED_CONFIGS = {
-    "esmc_300m": {
-        "embedding_dimensions": 960,
-        "num_heads": 15,
-        "num_encoder_layers": 30,
-    },
-    "esmc_600m": {
-        "embedding_dimensions": 1152,
-        "num_heads": 18,
-        "num_encoder_layers": 36,
-    },
-}
-
-PRETRAINED_CHECKPOINT_PATHS = {
-    "esmc_300m": "data/weights/esmc_300m_2024_12_v0.pth",
-    "esmc_600m": "data/weights/esmc_600m_2024_12_v0.pth",
-}
-
-
 class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     """
     A model for predicting Gene Ontology (GO) terms from protein sequences using the
     ESMC base model.
     """
+
+    ESM_PRETRAINED_CONFIGS = {
+        "esmc_300m": {
+            "embedding_dimensions": 960,
+            "num_heads": 15,
+            "num_encoder_layers": 30,
+        },
+        "esmc_600m": {
+            "embedding_dimensions": 1152,
+            "num_heads": 18,
+            "num_encoder_layers": 36,
+        },
+    }
+
+    ESM_PRETRAINED_CHECKPOINT_PATHS = {
+        "esmc_300m": "data/weights/esmc_300m_2024_12_v0.pth",
+        "esmc_600m": "data/weights/esmc_600m_2024_12_v0.pth",
+    }
 
     @classmethod
     def from_pretrained(cls, *args, **kwargs) -> "EsmcGoTermClassifier":
@@ -57,10 +55,17 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         classifier_hidden_ratio: int = 1,
         use_flash_attn: bool = True,
     ) -> "EsmcGoTermClassifier":
-        if model_name not in PRETRAINED_CONFIGS:
+        """
+        Since the base model pretrained weights are stored in a proprietary pickle format,
+        let's implement a custom factory method to load those weights.
+        """
+
+        from esm.utils.constants.esm3 import data_root
+
+        if model_name not in cls.ESM_PRETRAINED_CONFIGS:
             raise ValueError(f"Unknown model name: {model_name}")
 
-        model_args = PRETRAINED_CONFIGS.get(model_name)
+        model_args = cls.ESM_PRETRAINED_CONFIGS.get(model_name)
 
         model = cls(
             **model_args,
@@ -69,9 +74,9 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
             use_flash_attn=use_flash_attn,
         )
 
-        checkpoint_path = PRETRAINED_CHECKPOINT_PATHS.get(model_name)
+        checkpoint_path = cls.ESM_PRETRAINED_CHECKPOINT_PATHS.get(model_name)
 
-        # Compensate for disjoint base model naming conventions.
+        # Compensate for irregular base model naming conventions.
         esm_model_name = model_name.replace("_", "-")
 
         checkpoint_path = data_root(esm_model_name) / checkpoint_path
@@ -94,7 +99,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         if len(id2label) < 1:
             raise ValueError("id2label must contain at least one label.")
 
-        # This is required for the base class but is otherwise not used.
+        # This is required for the base class but is not used otherwise.
         tokenizer = EsmSequenceTokenizer()
 
         super().__init__(
