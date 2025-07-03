@@ -37,7 +37,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     """
 
     @classmethod
-    def from_pretrained(cls, model_name: str) -> "EsmcGoTermClassifier":
+    def from_pretrained(cls, *args, **kwargs) -> "EsmcGoTermClassifier":
         """
         The base model code is not compatible with HuggingFace Hub due to the ESMC folks
         storing the tokenizer within the model class, which is not a JSON serializable
@@ -47,7 +47,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         that we load the tokenizer correctly in the constructor.
         """
 
-        return super(PyTorchModelHubMixin, cls).from_pretrained(model_name)
+        return super(PyTorchModelHubMixin, cls).from_pretrained(*args, **kwargs)
 
     @classmethod
     def from_esm_pretrained(
