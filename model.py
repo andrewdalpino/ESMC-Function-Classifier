@@ -1,7 +1,7 @@
 import torch
 
 from torch import Tensor
-from torch.nn import Module, Linear
+from torch.nn import Module, Linear, Identity
 
 from esm.tokenization import EsmSequenceTokenizer
 from esm.models.esmc import ESMC
@@ -37,12 +37,12 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     @classmethod
     def from_pretrained(cls, *args, **kwargs) -> "EsmcGoTermClassifier":
         """
-        The base model code is not compatible with HuggingFace Hub due to the ESMC folks
-        storing the tokenizer within the model class, which is not a JSON serializable
+        The base model code is not compatible with HuggingFace Hub because the ESMC folks
+        store the tokenizer within the model class, which is not a JSON serializable
         configuration. In addition, the base code implements a custom `from_pretrained`
-        method that does not follow the HuggingFace Hub conventions. Therefore, let's
-        redirect the call to `from_pretrained` to the HuggingFace Hub mixin and ensure
-        that we load the tokenizer correctly in the constructor.
+        method but it does not follow the HuggingFace Hub conventions. Therefore, let's
+        compensate by redirecting the call to `from_pretrained` to the HuggingFace Hub
+        mixin and ensure that we load the tokenizer correctly in the constructor.
         """
 
         return super(PyTorchModelHubMixin, cls).from_pretrained(*args, **kwargs)
@@ -109,6 +109,9 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
             tokenizer=tokenizer,
             use_flash_attn=use_flash_attn,
         )
+
+        # Remove pretrained sequence head from the base model.
+        self.sequence_head = Identity()
 
         num_classes = len(id2label)
 

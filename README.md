@@ -16,7 +16,7 @@ The following pretrained models are available on HuggingFace Hub.
 
 | Name | Embedding Dim. | Attn. Heads | Encoder Layers | Context Length | Total Parameters |
 |---|---|---|---|---|---|
-| [andrewdalpino/ESMC-300M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-300M-Protein-Function) | 960 | 15 | 30 | 2048 | 362M |
+| [andrewdalpino/ESMC-300M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-300M-Protein-Function) | 960 | 15 | 30 | 2048 | 361M |
 
 ## Cloning the Repo
 
@@ -114,7 +114,7 @@ python fine-tune.py --checkpoint_path="./checkpoints/checkpoint.pt" --resume
 
 We use [TensorBoard](https://www.tensorflow.org/tensorboard) to capture and display training events such as loss and gradient norm updates. To launch the dashboard server run the following command from the terminal.
 
-```
+```sh
 tensorboard --logdir=./runs
 ```
 
@@ -143,7 +143,6 @@ Enter a sequence: MPNERLKWLMLFAAVALIACGSQTLAANPPDADQKGPVFLKEPTNRIDFSNSTG
 | --top_p | 0.5 | float | Only display nodes with the top `p` probability. |
 | --device | "cuda" | str | The device to run the computation on ("cuda", "cuda:1", "mps", "cpu", etc). |
 | --seed | None | int | The seed for the random number generator. |
-
 
 ## References:
 

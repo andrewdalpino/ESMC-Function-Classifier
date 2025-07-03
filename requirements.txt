@@ -6,6 +6,7 @@ transformers==4.48.1
 tensorboard==2.19.0
 obonet==1.1.1
 networkx==3.4.2
+huggingface_hub==0.32.4
 matplotlib==3.10.3
 PyQT5==5.15.11
 tqdm==4.67.1
