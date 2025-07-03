@@ -172,6 +172,7 @@ class MLPClassifier(Module):
         super().__init__()
 
         assert hidden_ratio in {1, 2, 4}, "hidden_ratio must be one of {1, 2, 4}."
+        assert num_classes > 0, "num_classes must be greater than 0."
 
         hidden_dimensions = hidden_ratio * embedding_dimensions
 

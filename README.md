@@ -10,6 +10,13 @@ An Evolutionary-scale Model (ESM) for protein function prediction from amino aci
 
 From [CAFA 5 Protein Function Prediction](https://www.kaggle.com/competitions/cafa-5-protein-function-prediction/data)
 
+## Pretrained Models
+
+The following pretrained models are available on HuggingFace Hub.
+
+| Name | Embedding Dim. | Attn. Heads | Encoder Layers | Context Length | Total Parameters |
+|---|---|---|---|---|---|
+| [andrewdalpino/ESMC-300M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-300M-Protein-Functio) | 960 | 15 | 30 | 2048 | 362M |
 
 ## Cloning the Repo
 
@@ -42,6 +49,97 @@ model_name = "andrewdalpino/ESMC-300M-Protein-Function"
 
 model = EsmcGoTermClassifier.from_pretrained(model_name)
 ```
+
+## Fine-tuning
+
+We'll be fine-tuning the pre-trained ESMC model with a multi-label binary classification head on the [AmiGO Boost](https://huggingface.co/datasets/andrewdalpino/AmiGO-Boost) dataset of GO term-annotated protein sequences. To begin training with the default arguments, you can enter the command below.
+
+```sh
+python fine-tune.py
+```
+
+You can change the base model and dataset subset like in the example below.
+
+```sh
+python fine-tune.py --base_model="esmc_600m" --dataset_subset="biological_process"
+```
+
+You can also adjust the `batch_size`, `gradient_accumulation_steps`, and `learning_rate` like in the example below.
+
+```sh
+python fine-tune.py --batch_size=16 --gradient_accumulation_step=8 --learning_rate=5e-4
+```
+
+Training checkpoints will be saved at the `checkpoint_path` location. You can change the location and the `checkpoint_interval` like in the example below.
+
+```sh
+python fine-tune.py --checkpoint_path="./checkpoints/biological-process-large.pt" --checkpoint_interval=3
+```
+
+If you would like to resume training from a previous checkpoint, make sure to add the `resume` argument. Note that if the checkpoint path already exists, the file will be overwritten.
+
+```sh
+python fine-tune.py --checkpoint_path="./checkpoints/checkpoint.pt" --resume
+```
+
+### Training Arguments
+
+| Argument | Default | Type | Description |
+|---|---|---|---|
+| --base_model | "esmc_300m" | str | The base model name, choose from `esmc_300m`, `esmc_600m`. |
+| --dataset_subset | "all" | str | The subset of the dataset to train on, choose from `all`, `mf` for molecular function, `cc` for cellular component, or `bp` for biological process. |
+| --num_dataset_processes | 1 | int | The number of CPU processes to use to process and load samples. |
+| --min_sequence_length | 1 | int | The minimum length of the input sequences. |
+| --max_sequence_length | 2048 | int | The maximum length of the input sequences. |
+| --unfreeze_last_k_layers | 7 | int | Fine-tune the last k layers of the pre-trained encoder. |
+| --batch_size | 8 | int | The number of samples to pass through the network at a time. |
+| --gradient_accumulation_steps | 16 | int | The number of batches to pass through the network before updating the weights. |
+| --max_gradient_norm | 1.0 | float | Clip gradients above this threshold norm before stepping. |
+| --learning_rate | 5e-4 | float | The learning rate of the Adam optimizer. |
+| --num_epochs | 40 | int | The number of epochs to train for. |
+| --classifier_hidden_ratio | 1 | int | The ratio of hidden nodes to embedding dimensions in the classifier head. |
+| --eval_interval | 2 | int | Evaluate the model after this many epochs on the testing set. |
+| --checkpoint_interval | 2 | int | Save the model parameters to disk every this many epochs. |
+| --checkpoint_path | "./checkpoints/checkpoint.pt" | string | The path to the training checkpoint. |
+| --resume | False | bool | Should we resume training from the last checkpoint? |
+| --run_dir_path | "./runs" | str | The path to the TensorBoard run directory for this training session. |
+| --device | "cuda" | str | The device to run the computation on ("cuda", "cuda:1", "mps", "cpu", etc). |
+| --seed | None | int | The seed for the random number generator. |
+
+## Training Dashboard
+
+We use [TensorBoard](https://www.tensorflow.org/tensorboard) to capture and display training events such as loss and gradient norm updates. To launch the dashboard server run the following command from the terminal.
+
+```
+tensorboard --logdir=./runs
+```
+
+## GO Subgraph Prediction
+
+We can also infer the gene ontology subgraph of a particular sequence. The `predict-subgraph.py` script outputs a graphical representation of the predictions where green nodes have high probability and pink nodes have low probability.
+
+```sh
+python predict-subgraph.py --checkpoint_path="./checkpoints/checkpoint.pt" --top_p=0.1
+```
+
+```sh
+Checkpoint loaded successfully
+Enter a sequence: MPNERLKWLMLFAAVALIACGSQTLAANPPDADQKGPVFLKEPTNRIDFSNSTG
+```
+
+![Example GO Subgraph](https://raw.githubusercontent.com/andrewdalpino/esm2-function-classifier/master/docs/images/Q0E9J9-mf.png)
+
+### Prediction Arguments
+
+| Argument | Default | Type | Description |
+|---|---|---|---|
+| --checkpoint_path | "./checkpoints/checkpoint.pt" | str | The path to the training checkpoint. |
+| --go_db_path | "./dataset/go-basic.obo" | str | The path to the Gene Ontology basic obo file. |
+| --context_length | 2048 | int | The maximum length of the input sequences. |
+| --top_p | 0.5 | float | Only display nodes with the top `p` probability. |
+| --device | "cuda" | str | The device to run the computation on ("cuda", "cuda:1", "mps", "cpu", etc). |
+| --seed | None | int | The seed for the random number generator. |
+
 
 ## References:
 
