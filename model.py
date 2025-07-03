@@ -37,10 +37,22 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     """
 
     @classmethod
+    def from_pretrained(cls, model_name: str) -> "EsmcGoTermClassifier":
+        """
+        The base model code is not compatible with HuggingFace Hub due to the ESMC folks
+        storing the tokenizer within the model class, which is not a JSON serializable
+        configuration. In addition, the base code implements a custom `from_pretrained`
+        method that does not follow the HuggingFace Hub conventions. Therefore, let's
+        redirect the call to `from_pretrained` to the HuggingFace Hub mixin and ensure
+        that we load the tokenizer correctly in the constructor.
+        """
+
+        return super(PyTorchModelHubMixin, cls).from_pretrained(model_name)
+
+    @classmethod
     def from_esm_pretrained(
         cls,
         model_name: str,
-        tokenizer: EsmSequenceTokenizer,
         id2label: dict[int, str],
         classifier_hidden_ratio: int = 1,
         use_flash_attn: bool = True,
@@ -52,7 +64,6 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
         model = cls(
             **model_args,
-            tokenizer=tokenizer,
             id2label=id2label,
             classifier_hidden_ratio=classifier_hidden_ratio,
             use_flash_attn=use_flash_attn,
@@ -60,7 +71,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
         checkpoint_path = PRETRAINED_CHECKPOINT_PATHS.get(model_name)
 
-        # Compensate for disjoint naming conventions.
+        # Compensate for disjoint base model naming conventions.
         esm_model_name = model_name.replace("_", "-")
 
         checkpoint_path = data_root(esm_model_name) / checkpoint_path
@@ -73,7 +84,6 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
     def __init__(
         self,
-        tokenizer: EsmSequenceTokenizer,
         embedding_dimensions: int,
         num_heads: int,
         num_encoder_layers: int,
@@ -83,6 +93,9 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     ) -> None:
         if len(id2label) < 1:
             raise ValueError("id2label must contain at least one label.")
+
+        # This is required for the base class but is otherwise not used.
+        tokenizer = EsmSequenceTokenizer()
 
         super().__init__(
             d_model=embedding_dimensions,
@@ -98,6 +111,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
             embedding_dimensions, classifier_hidden_ratio, num_classes
         )
 
+        self.tokenizer = tokenizer
         self.id2label = id2label
 
     @property

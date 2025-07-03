@@ -143,4 +143,5 @@ Enter a sequence: MPNERLKWLMLFAAVALIACGSQTLAANPPDADQKGPVFLKEPTNRIDFSNSTG
 
 ## References:
 
+>- T. Hayes, et al. Simulating 500 million years of evolution with a language model, 2024.
 >- M. Ashburner, et al. Gene Ontology: tool for the unification of biology, 2000.
