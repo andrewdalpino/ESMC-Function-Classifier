@@ -65,10 +65,7 @@ def main():
 
     model_args = checkpoint["model_args"]
 
-    model = EsmcGoTermClassifier.from_esm_pretrained(model_args)
-
-    print("Compiling model ...")
-    model = torch.compile(model)
+    model = EsmcGoTermClassifier.from_esm_pretrained(**model_args)
 
     model = model.to(args.device)
 
@@ -105,9 +102,9 @@ def main():
         )
 
         with torch.no_grad():
-            outputs = model.forward(input_ids)
+            y_pred = model.forward(input_ids)
 
-        probabilities = torch.sigmoid(outputs.logits.squeeze(0))
+        probabilities = torch.sigmoid(y_pred.squeeze(0))
 
         go_term_probabilities = {
             model.id2label[index]: probability.item()
@@ -140,7 +137,7 @@ def main():
         }
 
         plt.figure(figsize=(10, 8))
-        plt.title("Gene Ontology Subgraph")
+        plt.title("Gene Ontology Subgraphs")
 
         plot_subgraph(
             subgraph,

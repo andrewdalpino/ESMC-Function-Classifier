@@ -20,7 +20,7 @@ from torch.utils.tensorboard import SummaryWriter
 from esm.tokenization import EsmSequenceTokenizer
 
 from model import EsmcGoTermClassifier
-from data import AmiGO
+from data import AmiGOBoost
 
 from tqdm import tqdm
 
@@ -39,17 +39,18 @@ def main():
         choices=AVAILABLE_BASE_MODELS,
     )
     parser.add_argument(
-        "--dataset_subset", default="all", choices=AmiGO.AVAILABLE_SUBSETS
+        "--dataset_subset", default="all", choices=AmiGOBoost.AVAILABLE_SUBSETS
     )
     parser.add_argument("--num_dataset_processes", default=1, type=int)
     parser.add_argument("--min_sequence_length", default=1, type=int)
     parser.add_argument("--max_sequence_length", default=2048, type=int)
-    parser.add_argument("--unfreeze_last_k_layers", default=6, type=int)
+    parser.add_argument("--unfreeze_last_k_layers", default=7, type=int)
     parser.add_argument("--learning_rate", default=5e-4, type=float)
     parser.add_argument("--max_gradient_norm", default=1.0, type=float)
     parser.add_argument("--batch_size", default=8, type=int)
     parser.add_argument("--gradient_accumulation_steps", default=16, type=int)
     parser.add_argument("--num_epochs", default=40, type=int)
+    parser.add_argument("--classifier_hidden_ratio", default=1, type=int)
     parser.add_argument("--eval_interval", default=2, type=int)
     parser.add_argument("--checkpoint_interval", default=2, type=int)
     parser.add_argument(
@@ -93,7 +94,7 @@ def main():
 
     dtype = (
         torch.bfloat16
-        if "cuda" in args.device and is_bf16_supported()
+        if ("cuda" in args.device and is_bf16_supported()) or "mps" in args.device
         else torch.float32
     )
 
@@ -108,7 +109,7 @@ def main():
     tokenizer = EsmSequenceTokenizer()
 
     new_dataset = partial(
-        AmiGO,
+        AmiGOBoost,
         subset=args.dataset_subset,
         tokenizer=tokenizer,
         min_sequence_length=args.min_sequence_length,
@@ -133,6 +134,7 @@ def main():
         "model_name": args.base_model,
         "tokenizer": tokenizer,
         "id2label": training.label_indices_to_terms,
+        "classifier_hidden_ratio": args.classifier_hidden_ratio,
     }
 
     model = EsmcGoTermClassifier.from_esm_pretrained(**model_args)

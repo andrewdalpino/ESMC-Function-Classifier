@@ -42,6 +42,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         model_name: str,
         tokenizer: EsmSequenceTokenizer,
         id2label: dict[int, str],
+        classifier_hidden_ratio: int = 1,
         use_flash_attn: bool = True,
     ) -> "EsmcGoTermClassifier":
         if model_name not in PRETRAINED_CONFIGS:
@@ -53,6 +54,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
             **model_args,
             tokenizer=tokenizer,
             id2label=id2label,
+            classifier_hidden_ratio=classifier_hidden_ratio,
             use_flash_attn=use_flash_attn,
         )
 
@@ -76,6 +78,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         num_heads: int,
         num_encoder_layers: int,
         id2label: dict[int, str],
+        classifier_hidden_ratio: int = 1,
         use_flash_attn: bool = True,
     ) -> None:
         if len(id2label) < 1:
@@ -91,7 +94,9 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
         num_classes = len(id2label)
 
-        self.classifier = MLPClassifier(embedding_dimensions, num_classes)
+        self.classifier = MLPClassifier(
+            embedding_dimensions, classifier_hidden_ratio, num_classes
+        )
 
         self.id2label = id2label
 
@@ -161,13 +166,17 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
 
 class MLPClassifier(Module):
-    """A simple 2-layer classification head with SwiGLU activation."""
+    """A 2-layer classification head with SwiGLU activation."""
 
-    def __init__(self, input_features: int, num_classes: int):
+    def __init__(self, embedding_dimensions: int, hidden_ratio: int, num_classes: int):
         super().__init__()
 
-        self.linear1 = Linear(input_features, 2 * input_features, bias=False)
-        self.linear2 = Linear(input_features, num_classes, bias=False)
+        assert hidden_ratio in {1, 2, 4}, "hidden_ratio must be one of {1, 2, 4}."
+
+        hidden_dimensions = hidden_ratio * embedding_dimensions
+
+        self.linear1 = Linear(embedding_dimensions, 2 * hidden_dimensions)
+        self.linear2 = Linear(hidden_dimensions, num_classes)
 
         self.swiglu = SwiGLU()
 

@@ -10,13 +10,13 @@ from torch.nn.utils.rnn import pad_sequence
 from esm.tokenization import EsmSequenceTokenizer
 
 
-class AmiGO(Dataset):
+class AmiGOBoost(Dataset):
     """
     A collection of high-quality protein sequences and their associated gene ontology terms
     taken from the SwissProt subsection of the UniProt database.
     """
 
-    DATASET_NAME = "andrewdalpino/AmiGO"
+    DATASET_NAME = "andrewdalpino/AmiGO-Boost"
 
     AVAILABLE_SUBSETS = {"all", "mf", "cc", "bp"}
 
