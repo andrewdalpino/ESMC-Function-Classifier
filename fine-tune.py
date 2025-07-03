@@ -132,9 +132,9 @@ def main():
 
     model_args = {
         "model_name": args.base_model,
-        "tokenizer": tokenizer,
         "id2label": training.label_indices_to_terms,
         "classifier_hidden_ratio": args.classifier_hidden_ratio,
+        "use_flash_attn": True,
     }
 
     model = EsmcGoTermClassifier.from_esm_pretrained(**model_args)
