@@ -66,8 +66,6 @@ def main():
 
     model_args = checkpoint["model_args"]
 
-    del model_args["tokenizer"]  # Remove tokenizer from model args.
-
     model = EsmcGoTermClassifier.from_esm_pretrained(**model_args)
 
     model = model.to(args.device)
@@ -139,7 +137,7 @@ def main():
             for go_term, data in subgraph.nodes(data=True)
         }
 
-        plt.figure(figsize=(10, 8))
+        plt.figure(figsize=(12, 10))
         plt.title("Gene Ontology Subgraphs")
 
         plot_subgraph(

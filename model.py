@@ -52,8 +52,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         cls,
         model_name: str,
         id2label: dict[int, str],
-        classifier_hidden_ratio: int = 1,
-        use_flash_attn: bool = True,
+        use_flash_attention: bool = True,
     ) -> "EsmcGoTermClassifier":
         """
         Since the base model pretrained weights are stored in a proprietary pickle format,
@@ -70,8 +69,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         model = cls(
             **model_args,
             id2label=id2label,
-            classifier_hidden_ratio=classifier_hidden_ratio,
-            use_flash_attn=use_flash_attn,
+            use_flash_attention=use_flash_attention,
         )
 
         checkpoint_path = cls.ESM_PRETRAINED_CHECKPOINT_PATHS.get(model_name)
@@ -93,8 +91,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         num_heads: int,
         num_encoder_layers: int,
         id2label: dict[int, str],
-        classifier_hidden_ratio: int = 1,
-        use_flash_attn: bool = True,
+        use_flash_attention: bool = True,
     ) -> None:
         if len(id2label) < 1:
             raise ValueError("id2label must contain at least one label.")
@@ -107,17 +104,15 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
             n_heads=num_heads,
             n_layers=num_encoder_layers,
             tokenizer=tokenizer,
-            use_flash_attn=use_flash_attn,
+            use_flash_attn=use_flash_attention,
         )
-
-        # Remove pretrained sequence head from the base model.
-        self.sequence_head = Identity()
 
         num_classes = len(id2label)
 
-        self.classifier = MLPClassifier(
-            embedding_dimensions, classifier_hidden_ratio, num_classes
-        )
+        self.classifier = MLPClassifier(embedding_dimensions, num_classes)
+
+        # Remove pretrained sequence head from the base model.
+        self.sequence_head = Identity()
 
         self.tokenizer = tokenizer
         self.id2label = id2label
@@ -158,9 +153,9 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         )
 
         # Grab the classification token <CLS> embeddings.
-        z = out.embeddings[:, 0, :]
+        x = out.embeddings[:, 0, :]
 
-        z = self.classifier.forward(z)
+        z = self.classifier.forward(x)
 
         return z
 
@@ -190,17 +185,14 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 class MLPClassifier(Module):
     """A 2-layer classification head with SwiGLU activation."""
 
-    def __init__(self, embedding_dimensions: int, hidden_ratio: int, num_classes: int):
+    def __init__(self, embedding_dimensions: int, num_classes: int):
         super().__init__()
 
         assert embedding_dimensions > 0, "embedding_dimensions must be greater than 0."
-        assert hidden_ratio in {1, 2, 4}, "hidden_ratio must be one of {1, 2, 4}."
         assert num_classes > 0, "num_classes must be greater than 0."
 
-        hidden_dimensions = hidden_ratio * embedding_dimensions
-
-        self.linear1 = Linear(embedding_dimensions, 2 * hidden_dimensions)
-        self.linear2 = Linear(hidden_dimensions, num_classes)
+        self.linear1 = Linear(embedding_dimensions, 2 * embedding_dimensions)
+        self.linear2 = Linear(embedding_dimensions, num_classes)
 
         self.swiglu = SwiGLU()
 

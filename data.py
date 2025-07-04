@@ -10,13 +10,13 @@ from torch.nn.utils.rnn import pad_sequence
 from esm.tokenization import EsmSequenceTokenizer
 
 
-class AmiGOBoost(Dataset):
+class AmiGO(Dataset):
     """
-    A collection of high-quality protein sequences and their associated gene ontology terms
-    taken from the SwissProt subsection of the UniProt database.
+    A collection of high-quality human-annotated protein sequences and their associated gene
+    ontology terms taken from the SwissProt subsection of the UniProt database.
     """
 
-    DATASET_NAME = "andrewdalpino/AmiGO-Boost"
+    DATASET_NAME = "andrewdalpino/AmiGO"
 
     AVAILABLE_SUBSETS = {"all", "mf", "cc", "bp"}
 
@@ -132,3 +132,9 @@ class AmiGOBoost(Dataset):
 
     def __len__(self):
         return len(self.dataset)
+
+
+class AmiGOBoost(AmiGO):
+    """The AmiGO dataset with additional phylogenetically-inferred annotations."""
+
+    DATASET_NAME = "andrewdalpino/AmiGO-Boost"

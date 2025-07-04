@@ -50,7 +50,6 @@ def main():
     parser.add_argument("--batch_size", default=8, type=int)
     parser.add_argument("--gradient_accumulation_steps", default=16, type=int)
     parser.add_argument("--num_epochs", default=40, type=int)
-    parser.add_argument("--classifier_hidden_ratio", default=1, choices={1, 2, 4})
     parser.add_argument("--use_flash_attention", default=True, type=bool)
     parser.add_argument("--eval_interval", default=2, type=int)
     parser.add_argument("--checkpoint_interval", default=2, type=int)
@@ -105,8 +104,6 @@ def main():
         torch.manual_seed(args.seed)
         random.seed(args.seed)
 
-    logger = SummaryWriter(args.run_dir_path)
-
     tokenizer = EsmSequenceTokenizer()
 
     new_dataset = partial(
@@ -134,8 +131,7 @@ def main():
     model_args = {
         "model_name": args.base_model,
         "id2label": training.label_indices_to_terms,
-        "classifier_hidden_ratio": args.classifier_hidden_ratio,
-        "use_flash_attn": args.use_flash_attention,
+        "use_flash_attention": args.use_flash_attention,
     }
 
     model = EsmcGoTermClassifier.from_esm_pretrained(**model_args)
@@ -172,6 +168,8 @@ def main():
         print("Previous checkpoint resumed successfully")
 
     model.train()
+
+    logger = SummaryWriter(args.run_dir_path)
 
     print("Fine-tuning ...")
 
