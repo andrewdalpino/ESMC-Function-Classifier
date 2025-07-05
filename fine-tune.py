@@ -45,6 +45,8 @@ def main():
     parser.add_argument("--min_sequence_length", default=1, type=int)
     parser.add_argument("--max_sequence_length", default=2048, type=int)
     parser.add_argument("--unfreeze_last_k_layers", default=6, type=int)
+    parser.add_argument("--add_lora", action="store_true")
+    parser.add_argument("--lora_rank", default=8, type=int)
     parser.add_argument("--learning_rate", default=5e-4, type=float)
     parser.add_argument("--max_gradient_norm", default=1.0, type=float)
     parser.add_argument("--batch_size", default=8, type=int)
@@ -143,6 +145,11 @@ def main():
     model.freeze_base()
 
     model.unfreeze_last_k_encoder_layers(args.unfreeze_last_k_layers)
+
+    if args.add_lora:
+        k = model.num_encoder_layers - args.unfreeze_last_k_layers
+
+        model.add_lora_to_first_k_encoder_layers(k, args.lora_rank)
 
     print(f"Number of trainable parameters: {model.num_trainable_parameters:,}")
 

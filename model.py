@@ -131,12 +131,8 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         self.id2label = id2label
 
     @property
-    def label2id(self) -> dict[str, int]:
-        return {label: index for index, label in self.id2label.items()}
-
-    @property
-    def num_classes(self) -> int:
-        return len(self.id2label)
+    def num_encoder_layers(self) -> int:
+        return len(self.transformer.blocks)
 
     @property
     def num_params(self) -> int:
@@ -145,6 +141,14 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     @property
     def num_trainable_parameters(self) -> int:
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+    @property
+    def label2id(self) -> dict[str, int]:
+        return {label: index for index, label in self.id2label.items()}
+
+    @property
+    def num_classes(self) -> int:
+        return len(self.id2label)
 
     def freeze_base(self) -> None:
         for module in (self.embed, self.transformer):
