@@ -96,6 +96,8 @@ python fine-tune.py --checkpoint_path="./checkpoints/checkpoint.pt" --resume
 | --min_sequence_length | 1 | int | The minimum length of the input sequences. |
 | --max_sequence_length | 2048 | int | The maximum length of the input sequences. |
 | --unfreeze_last_k_layers | 7 | int | Fine-tune the last k layers of the pre-trained encoder. |
+| --add_lora | False | bool | Should we add LoRA adapters to the frozen encoder layers? |
+| --lora_rank | 8 | int | The rank of the matrices used to approximate the weights of frozen encoder layers during fine-tuning. |
 | --batch_size | 8 | int | The number of samples to pass through the network at a time. |
 | --gradient_accumulation_steps | 16 | int | The number of batches to pass through the network before updating the weights. |
 | --max_gradient_norm | 1.0 | float | Clip gradients above this threshold norm before stepping. |
