@@ -44,12 +44,13 @@ def main():
     parser.add_argument("--num_dataset_processes", default=1, type=int)
     parser.add_argument("--min_sequence_length", default=1, type=int)
     parser.add_argument("--max_sequence_length", default=2048, type=int)
-    parser.add_argument("--unfreeze_last_k_layers", default=7, type=int)
+    parser.add_argument("--unfreeze_last_k_layers", default=6, type=int)
     parser.add_argument("--learning_rate", default=5e-4, type=float)
     parser.add_argument("--max_gradient_norm", default=1.0, type=float)
     parser.add_argument("--batch_size", default=8, type=int)
     parser.add_argument("--gradient_accumulation_steps", default=16, type=int)
     parser.add_argument("--num_epochs", default=40, type=int)
+    parser.add_argument("--classifier_hidden_ratio", default=1, type=int)
     parser.add_argument("--use_flash_attention", default=True, type=bool)
     parser.add_argument("--eval_interval", default=2, type=int)
     parser.add_argument("--checkpoint_interval", default=2, type=int)
@@ -121,7 +122,7 @@ def main():
         DataLoader,
         batch_size=args.batch_size,
         collate_fn=training.collate_pad_right,
-        pin_memory=all(device not in args.device for device in ("cpu", "mps")),
+        pin_memory="cuda" in args.device,
         num_workers=args.num_dataset_processes,
     )
 
@@ -130,6 +131,7 @@ def main():
 
     model_args = {
         "model_name": args.base_model,
+        "classifier_hidden_ratio": args.classifier_hidden_ratio,
         "id2label": training.label_indices_to_terms,
         "use_flash_attention": args.use_flash_attention,
     }
