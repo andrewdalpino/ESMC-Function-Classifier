@@ -72,6 +72,8 @@ def main():
 
     model.load_state_dict(checkpoint["model"])
 
+    model.merge_lora_parameters()
+
     model.eval()
 
     print("Checkpoint loaded successfully.")
