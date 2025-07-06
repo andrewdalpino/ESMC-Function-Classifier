@@ -44,7 +44,7 @@ def main():
     parser.add_argument("--num_dataset_processes", default=1, type=int)
     parser.add_argument("--min_sequence_length", default=1, type=int)
     parser.add_argument("--max_sequence_length", default=2048, type=int)
-    parser.add_argument("--unfreeze_last_k_layers", default=6, type=int)
+    parser.add_argument("--unfreeze_last_k_layers", default=7, type=int)
     parser.add_argument("--add_lora", action="store_true")
     parser.add_argument("--lora_rank", default=8, type=int)
     parser.add_argument("--learning_rate", default=5e-4, type=float)
