@@ -17,6 +17,7 @@ The following pretrained models are available on HuggingFace Hub.
 | Name | Embedding Dim. | Attn. Heads | Encoder Layers | Context Length | Total Parameters |
 |---|---|---|---|---|---|
 | [andrewdalpino/ESMC-300M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-300M-Protein-Function) | 960 | 15 | 30 | 2048 | 361M |
+| [andrewdalpino/ESMC-600M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-600M-Protein-Function) | 1152 | 18 | 36 | 2048 | 644M |
 
 ## Cloning the Repo
 
@@ -95,7 +96,7 @@ python fine-tune.py --checkpoint_path="./checkpoints/checkpoint.pt" --resume
 | --num_dataset_processes | 1 | int | The number of CPU processes to use to process and load samples. |
 | --min_sequence_length | 1 | int | The minimum length of the input sequences. |
 | --max_sequence_length | 2048 | int | The maximum length of the input sequences. |
-| --unfreeze_last_k_layers | 7 | int | Fine-tune the last k layers of the pre-trained encoder. |
+| --unfreeze_last_k_layers | 7 | int | Fine-tune the last k layers of the pre-trained encoder network. |
 | --add_lora | False | bool | Should we add LoRA adapters to the frozen encoder layers? |
 | --lora_rank | 8 | int | The rank of the matrices used to approximate the weights of frozen encoder layers during fine-tuning. |
 | --batch_size | 8 | int | The number of samples to pass through the network at a time. |
