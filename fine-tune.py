@@ -131,6 +131,9 @@ def main():
     train_loader = new_dataloader(training, shuffle=True)
     test_loader = new_dataloader(testing)
 
+    print(f"Training samples: {len(training.dataset):,}")
+    print(f"Testing samples: {len(testing.dataset):,}")
+
     model_args = {
         "model_name": args.base_model,
         "classifier_hidden_ratio": args.classifier_hidden_ratio,
@@ -144,12 +147,12 @@ def main():
 
     model.freeze_base()
 
-    model.unfreeze_last_k_encoder_layers(args.unfreeze_last_k_layers)
-
     if args.add_lora:
         k = model.num_encoder_layers - args.unfreeze_last_k_layers
 
         model.add_lora_to_first_k_encoder_layers(k, args.lora_rank)
+
+    model.unfreeze_last_k_encoder_layers(args.unfreeze_last_k_layers)
 
     print(f"Number of trainable parameters: {model.num_trainable_parameters:,}")
 
