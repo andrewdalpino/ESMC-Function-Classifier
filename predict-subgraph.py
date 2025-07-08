@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 
 import torch
 
-from model import EsmcGoTermClassifier
+from src.model import EsmcGoTermClassifier
 
 from torch.cuda import is_available as cuda_is_available
 

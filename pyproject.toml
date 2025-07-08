@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "esmc-function-classifier"
+description = "An Evolutionary-scale Model (ESM) for protein function prediction from amino acid sequences using the Gene Ontology (GO)."
+version = "0.0.1"
+requires-python = ">= 3.10"
+dependencies = [
+  "esm==3.2.0",
+  "torch==2.7.1",
+  "transformers==4.48.1",
+  "huggingface_hub==0.32.4"
+]
+authors = [
+  {name = "Andrew DalPino", email = "support@andrewdalpino.com"},
+]
+readme = "README.md"
+license = {text = "MIT"}
+
+[project.optional-dependencies]
+dev = ["mypy", "black", "matplotlib"]
+test = ["mypy", "black"]
+
+[project.urls]
+Homepage = "https://github.com/andrewdalpino/esmc-function-classifier"
+Documentation = "https://github.com/andrewdalpino/esmc-function-classifier/README.md"
+Source = "https://github.com/andrewdalpino/esmc-function-classifier"
