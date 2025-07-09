@@ -19,7 +19,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from esm.tokenization import EsmSequenceTokenizer
 
-from src.model import EsmcGoTermClassifier
+from src.esmc_function_classifier.model import EsmcGoTermClassifier
 from data import AmiGOBoost
 
 from tqdm import tqdm
