@@ -173,6 +173,7 @@ class TestEsmcGoTermClassifier(unittest.TestCase):
             embedding_dimensions=self.embedding_dimensions,
             num_heads=self.num_heads,
             num_encoder_layers=self.num_encoder_layers,
+            classifier_hidden_ratio=1,
             id2label=self.id2label,
         )
 
@@ -234,6 +235,7 @@ class TestEsmcGoTermClassifier(unittest.TestCase):
                 embedding_dimensions=self.embedding_dimensions,
                 num_heads=self.num_heads,
                 num_encoder_layers=self.num_encoder_layers,
+                classifier_hidden_ratio=1,
                 id2label={},
             )
 

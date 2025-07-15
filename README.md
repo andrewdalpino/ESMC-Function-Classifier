@@ -19,9 +19,19 @@ The following pretrained models are available on HuggingFace Hub.
 | [andrewdalpino/ESMC-300M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-300M-Protein-Function) | 960 | 15 | 30 | 2048 | 361M |
 | [andrewdalpino/ESMC-600M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-600M-Protein-Function) | 1152 | 18 | 36 | 2048 | 644M |
 
+## Pretrained Example
+
+First, install the `esmc_function_classifier` package using [pip](https://pypi.org/project/pip/).
+
+```sh
+pip install esmc_function_classifier
+```
+
+
+
 ## Cloning the Repo
 
-You'll need the code in the repository to run the model. To clone the repo onto your local machine enter the command like in the example below.
+You'll need the code in the repository to fine-tune and export your own models. To clone the repo onto your local machine enter the command like in the example below.
 
 ```sh
 git clone https://github.com/andrewdalpino/ESMC-Function-Classifier
