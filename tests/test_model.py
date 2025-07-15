@@ -6,7 +6,7 @@ import sys
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from model import EsmcGoTermClassifier, MLPClassifier
+from src.esmc_function_classifier.model import EsmcGoTermClassifier, MLPClassifier
 from esm.tokenization import EsmSequenceTokenizer
 
 
