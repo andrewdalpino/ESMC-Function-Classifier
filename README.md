@@ -27,7 +27,7 @@ First, install the `esmc_function_classifier` package using [pip](https://pypi.o
 pip install esmc_function_classifier obonet
 ```
 
-Then, we'll load the model weights from HuggingFace Hub, tokenize the amino acid sequence, and infer the GO subgraph.
+Then, we'll load the model weights from HuggingFace Hub and the GO graph using `obonet`, tokenize the amino acid sequence, and infer the GO subgraph.
 
 ```python
 import torch
