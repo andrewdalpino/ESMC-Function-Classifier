@@ -24,13 +24,15 @@ The following pretrained models are available on HuggingFace Hub.
 First, install the `esmc_function_classifier` package using [pip](https://pypi.org/project/pip/).
 
 ```sh
-pip install esmc_function_classifier
+pip install esmc_function_classifier obonet
 ```
 
 Then, we'll load the model weights from HuggingFace Hub, tokenize the amino acid sequence, and infer the GO subgraph.
 
 ```python
 import torch
+
+import obonet
 
 from esm.tokenization import EsmSequenceTokenizer
 
@@ -39,13 +41,19 @@ from esmc_function_classifier.model import EsmcGoTermClassifier
 
 model_name = "andrewdalpino/ESMC-300M-Protein-Function"
 
+go_db_path = "./dataset/go-basic.obo"
+
 sequence = "MPPKGHKKTADGDFRPVNSAGNTIQAKQKYSIDDLLYPKSTIKNLAKETLPDDAIISKDALTAIQRAATLFVSYMASHGNASAEAGGRKKIT"
 
 top_p = 0.5
 
+graph = obonet.read_obo(go_db_path)
+
 tokenizer = EsmSequenceTokenizer()
 
 model = EsmcGoTermClassifier.from_pretrained(model_name)
+
+model.load_gene_ontology(graph)
 
 out = tokenizer(sequence, max_length=2048, truncation=True)
 
