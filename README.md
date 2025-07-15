@@ -30,6 +30,8 @@ pip install esmc_function_classifier
 Then, we'll load the model weights from HuggingFace Hub, tokenize the amino acid sequence, and infer the GO subgraph.
 
 ```python
+import torch
+
 from esm.tokenization import EsmSequenceTokenizer
 
 from esmc_function_classifier.model import EsmcGoTermClassifier
@@ -39,20 +41,18 @@ model_name = "andrewdalpino/ESMC-300M-Protein-Function"
 
 sequence = "MPPKGHKKTADGDFRPVNSAGNTIQAKQKYSIDDLLYPKSTIKNLAKETLPDDAIISKDALTAIQRAATLFVSYMASHGNASAEAGGRKKIT"
 
+top_p = 0.5
+
 tokenizer = EsmSequenceTokenizer()
 
 model = EsmcGoTermClassifier.from_pretrained(model_name)
 
-out = model.tokenizer(
-    sequence,
-    max_length=args.context_length,
-    truncation=True,
-)
+out = tokenizer(sequence, max_length=2048, truncation=True)
 
 input_ids = torch.tensor(out["input_ids"], dtype=torch.int64)
 
 subgraph, go_term_probabilities = model.predict_subgraph(
-    input_ids, top_p=args.top_p
+    input_ids, top_p=top_p
 )
 ```
 
