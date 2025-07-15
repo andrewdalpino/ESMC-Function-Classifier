@@ -68,13 +68,15 @@ def main():
 
     model.merge_lora_parameters()
 
+    model.eval()
+
+    print("Checkpoint loaded successfully.")
+
     graph = obonet.read_obo(args.go_db_path)
 
     model.load_gene_ontology(graph)
 
-    model.eval()
-
-    print("Checkpoint loaded successfully.")
+    print("Gene ontology loaded successfully.")
 
     plot_subgraph = partial(
         nx.draw_networkx,
