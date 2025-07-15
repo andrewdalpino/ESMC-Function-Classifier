@@ -135,6 +135,8 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
             embedding_dimensions, classifier_hidden_ratio, num_classes
         )
 
+        id2label = {int(index): str(label) for index, label in id2label.items()}
+
         self.id2label = id2label
         self.graph: DiGraph | None = None
 
@@ -243,12 +245,12 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         assert sequence_tokens.ndim == 1, "sequence must be a 1D tensor."
         assert 0 < top_p <= 1, "top_p must be in the range (0, 1]."
 
-        z = self.forward(sequence_tokens=sequence_tokens)
+        z = self.forward(sequence_tokens.unsqueeze(0)).squeeze(0)
 
-        probabilities = torch.sigmoid(z)
+        probabilities = torch.sigmoid(z).tolist()
 
         go_term_probabilities = {
-            self.id2label[index]: probability.item()
+            self.id2label[index]: probability
             for index, probability in enumerate(probabilities)
             if probability > top_p
         }
