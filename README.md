@@ -19,7 +19,7 @@ The following pretrained models are available on HuggingFace Hub.
 | [andrewdalpino/ESMC-300M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-300M-Protein-Function) | 960 | 15 | 30 | 2048 | 361M |
 | [andrewdalpino/ESMC-600M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-600M-Protein-Function) | 1152 | 18 | 36 | 2048 | 644M |
 
-## Pretrained Example
+## Basic Pretrained Example
 
 First, install the `esmc_function_classifier` package using [pip](https://pypi.org/project/pip/).
 
@@ -27,7 +27,34 @@ First, install the `esmc_function_classifier` package using [pip](https://pypi.o
 pip install esmc_function_classifier
 ```
 
+Then, we'll load the model weights from HuggingFace Hub, tokenize the amino acid sequence, and infer the GO subgraph.
 
+```python
+from esm.tokenization import EsmSequenceTokenizer
+
+from esmc_function_classifier.model import EsmcGoTermClassifier
+
+
+model_name = "andrewdalpino/ESMC-300M-Protein-Function"
+
+sequence = "MPPKGHKKTADGDFRPVNSAGNTIQAKQKYSIDDLLYPKSTIKNLAKETLPDDAIISKDALTAIQRAATLFVSYMASHGNASAEAGGRKKIT"
+
+tokenizer = EsmSequenceTokenizer()
+
+model = EsmcGoTermClassifier.from_pretrained(model_name)
+
+out = model.tokenizer(
+    sequence,
+    max_length=args.context_length,
+    truncation=True,
+)
+
+input_ids = torch.tensor(out["input_ids"], dtype=torch.int64)
+
+subgraph, go_term_probabilities = model.predict_subgraph(
+    input_ids, top_p=args.top_p
+)
+```
 
 ## Cloning the Repo
 
@@ -47,22 +74,6 @@ python -m venv ./.venv
 source ./.venv/bin/activate
 
 pip install -r requirements.txt
-```
-
-### Using a Pretrained Model
-
-You'll need the code in this repository to load the pretrained model weights. Import the `EsmGoTermClassifier` class and call `from_pretrained()` with the name of the model you want to load from the HuggingFace Hub.
-
-```python
-from esm.tokenization import EsmSequenceTokenizer
-
-from model import EsmcGoTermClassifier
-
-model_name = "andrewdalpino/ESMC-300M-Protein-Function"
-
-tokenizer = EsmSequenceTokenizer()
-
-model = EsmcGoTermClassifier.from_pretrained(model_name)
 ```
 
 ## Fine-tuning
