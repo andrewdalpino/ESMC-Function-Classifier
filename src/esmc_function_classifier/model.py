@@ -236,15 +236,14 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
     @torch.no_grad()
     def predict_terms(
-        self,
-        sequence_tokens: Tensor,
-        sequence_id: Tensor | None = None,
-        top_p: float = 0.5,
+        self, sequence_tokens: Tensor, top_p: float = 0.5
     ) -> dict[str, float]:
-        z = self.forward(
-            sequence_tokens=sequence_tokens,
-            sequence_id=sequence_id,
-        )
+        """Predicts GO terms based on the input sequence tokens."""
+
+        assert sequence_tokens.ndim == 1, "sequence must be a 1D tensor."
+        assert 0 < top_p <= 1, "top_p must be in the range (0, 1]."
+
+        z = self.forward(sequence_tokens=sequence_tokens)
 
         probabilities = torch.sigmoid(z)
 
@@ -258,17 +257,14 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
     @torch.no_grad()
     def predict_subgraph(
-        self,
-        sequence_tokens: Tensor,
-        sequence_id: Tensor | None = None,
-        top_p: float = 0.5,
+        self, sequence_tokens: Tensor, top_p: float = 0.5
     ) -> tuple[DiGraph, dict[str, float]]:
         """Predicts a subgraph of the GO based on the input sequence tokens."""
 
         if self.graph is None:
             raise ValueError("Gene Ontology graph is not loaded.")
 
-        go_term_probabilities = self.predict_terms(sequence_tokens, sequence_id, top_p)
+        go_term_probabilities = self.predict_terms(sequence_tokens, top_p)
 
         child_nodes = copy(go_term_probabilities)
 

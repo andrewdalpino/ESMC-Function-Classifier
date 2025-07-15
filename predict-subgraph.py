@@ -98,11 +98,7 @@ def main():
             truncation=True,
         )
 
-        input_ids = out["input_ids"]
-
-        input_ids = (
-            torch.tensor(input_ids, dtype=torch.int64).unsqueeze(0).to(args.device)
-        )
+        input_ids = torch.tensor(out["input_ids"], dtype=torch.int64).to(args.device)
 
         subgraph, go_term_probabilities = model.predict_subgraph(
             input_ids, top_p=args.top_p
