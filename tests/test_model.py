@@ -100,6 +100,7 @@ class TestEsmcGoTermClassifier(unittest.TestCase):
             embedding_dimensions=self.embedding_dimensions,
             num_heads=self.num_heads,
             num_encoder_layers=self.num_encoder_layers,
+            classifier_hidden_ratio=1,
             id2label=self.id2label,
         )
 
@@ -113,6 +114,7 @@ class TestEsmcGoTermClassifier(unittest.TestCase):
             embedding_dimensions=self.embedding_dimensions,
             num_heads=self.num_heads,
             num_encoder_layers=self.num_encoder_layers,
+            classifier_hidden_ratio=1,
             id2label=self.id2label,
         )
 
@@ -134,7 +136,7 @@ class TestEsmcGoTermClassifier(unittest.TestCase):
     def test_from_esm_pretrained(self):
         """Test loading a pretrained model."""
         model = EsmcGoTermClassifier.from_esm_pretrained(
-            model_name="esmc_300m", id2label=self.id2label
+            model_name="esmc_300m", classifier_hidden_ratio=1, id2label=self.id2label
         )
 
         self.assertIsInstance(model, EsmcGoTermClassifier)
@@ -146,6 +148,7 @@ class TestEsmcGoTermClassifier(unittest.TestCase):
             embedding_dimensions=self.embedding_dimensions,
             num_heads=self.num_heads,
             num_encoder_layers=self.num_encoder_layers,
+            classifier_hidden_ratio=1,
             id2label=self.id2label,
         )
 
