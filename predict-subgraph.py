@@ -54,12 +54,6 @@ def main():
         torch.manual_seed(args.seed)
         random.seed(args.seed)
 
-    graph = obonet.read_obo(args.go_db_path)
-
-    assert nx.is_directed_acyclic_graph(graph), "Invalid GO graph, use basic DAG."
-
-    print("Gene Ontology graph loaded successfully.")
-
     checkpoint = torch.load(
         args.checkpoint_path, map_location="cpu", weights_only=False
     )
@@ -73,6 +67,10 @@ def main():
     model.load_state_dict(checkpoint["model"])
 
     model.merge_lora_parameters()
+
+    graph = obonet.read_obo(args.go_db_path)
+
+    model.load_gene_ontology(graph)
 
     model.eval()
 
@@ -104,31 +102,9 @@ def main():
             torch.tensor(input_ids, dtype=torch.int64).unsqueeze(0).to(args.device)
         )
 
-        with torch.no_grad():
-            y_pred = model.forward(input_ids)
-
-        probabilities = torch.sigmoid(y_pred.squeeze(0))
-
-        go_term_probabilities = defaultdict(
-            float,
-            {
-                model.id2label[index]: probability.item()
-                for index, probability in enumerate(probabilities)
-                if probability > args.top_p
-            },
+        subgraph, go_term_probabilities = model.predict_subgraph(
+            input_ids, top_p=args.top_p
         )
-
-        # Fix up the predictions by leveraging the GO DAG hierarchy.
-        for go_term, parent_probability in copy(go_term_probabilities).items():
-            for descendant in nx.descendants(graph, go_term):
-                child_probability = go_term_probabilities[descendant]
-
-                go_term_probabilities[descendant] = max(
-                    parent_probability,
-                    child_probability,
-                )
-
-        subgraph = graph.subgraph(go_term_probabilities.keys())
 
         color_intensities = [
             go_term_probabilities[go_term] for go_term in subgraph.nodes()

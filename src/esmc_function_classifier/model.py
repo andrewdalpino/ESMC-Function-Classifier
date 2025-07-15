@@ -1,4 +1,7 @@
 from math import sqrt
+from copy import copy
+
+from collections import defaultdict
 
 import torch
 
@@ -11,6 +14,10 @@ from esm.models.esmc import ESMC
 from esm.layers.blocks import SwiGLU
 
 from huggingface_hub import PyTorchModelHubMixin
+
+import networkx as nx
+
+from networkx import DiGraph
 
 
 class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
@@ -129,6 +136,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         )
 
         self.id2label = id2label
+        self.graph: DiGraph | None = None
 
     @property
     def num_encoder_layers(self) -> int:
@@ -149,6 +157,16 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     @property
     def num_classes(self) -> int:
         return len(self.id2label)
+
+    def load_gene_ontology(self, graph: DiGraph) -> None:
+        """Load the Gene Ontology (GO) DAG."""
+
+        if not nx.is_directed_acyclic_graph(graph):
+            raise ValueError(
+                "Invalid GO graph, must be a directed acyclic graph (DAG)."
+            )
+
+        self.graph = graph
 
     def freeze_base(self) -> None:
         for module in (self.embed, self.transformer):
@@ -222,7 +240,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         sequence_tokens: Tensor,
         sequence_id: Tensor | None = None,
         top_p: float = 0.5,
-    ) -> dict:
+    ) -> dict[str, float]:
         z = self.forward(
             sequence_tokens=sequence_tokens,
             sequence_id=sequence_id,
@@ -237,6 +255,38 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         }
 
         return go_term_probabilities
+
+    @torch.no_grad()
+    def predict_subgraph(
+        self,
+        sequence_tokens: Tensor,
+        sequence_id: Tensor | None = None,
+        top_p: float = 0.5,
+    ) -> tuple[DiGraph, dict[str, float]]:
+        """Predicts a subgraph of the GO based on the input sequence tokens."""
+
+        if self.graph is None:
+            raise ValueError("Gene Ontology graph is not loaded.")
+
+        go_term_probabilities = self.predict_terms(sequence_tokens, sequence_id, top_p)
+
+        child_nodes = copy(go_term_probabilities)
+
+        go_term_probabilities = defaultdict(float, go_term_probabilities)
+
+        # Fix up the predictions by leveraging the GO DAG hierarchy.
+        for go_term, child_probability in child_nodes.items():
+            for descendant in nx.descendants(self.graph, go_term):
+                parent_probability = go_term_probabilities[descendant]
+
+                go_term_probabilities[descendant] = max(
+                    parent_probability,
+                    child_probability,
+                )
+
+        subgraph = self.graph.subgraph(go_term_probabilities.keys())
+
+        return subgraph, go_term_probabilities
 
 
 class MLPClassifier(Module):
