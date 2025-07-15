@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "esmc-function-classifier"
 description = "An Evolutionary-scale Model (ESM) for protein function prediction from amino acid sequences using the Gene Ontology (GO)."
-version = "0.0.3"
+version = "0.0.4"
 requires-python = ">= 3.10"
 dependencies = [
   "esm==3.2.0",
