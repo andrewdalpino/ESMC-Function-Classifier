@@ -163,10 +163,9 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     def load_gene_ontology(self, graph: DiGraph) -> None:
         """Load the Gene Ontology (GO) DAG."""
 
-        if not nx.is_directed_acyclic_graph(graph):
-            raise ValueError(
-                "Invalid GO graph, must be a directed acyclic graph (DAG)."
-            )
+        assert nx.is_directed_acyclic_graph(
+            graph
+        ), "Invalid GO graph, must be a directed acyclic graph (DAG)."
 
         self.graph = graph
 
@@ -263,8 +262,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     ) -> tuple[DiGraph, dict[str, float]]:
         """Predicts a subgraph of the GO based on the input sequence tokens."""
 
-        if self.graph is None:
-            raise ValueError("Gene Ontology graph is not loaded.")
+        assert self.graph is not None, "Gene Ontology graph is not loaded."
 
         go_term_probabilities = self.predict_terms(sequence_tokens, top_p)
 
@@ -273,8 +271,8 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         go_term_probabilities = defaultdict(float, go_term_probabilities)
 
         # Fix up the predictions by leveraging the GO DAG hierarchy.
-        for go_term, child_probability in child_nodes.items():
-            for descendant in nx.descendants(self.graph, go_term):
+        for go_id, child_probability in child_nodes.items():
+            for descendant in nx.descendants(self.graph, go_id):
                 parent_probability = go_term_probabilities[descendant]
 
                 go_term_probabilities[descendant] = max(
