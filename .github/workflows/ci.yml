@@ -30,5 +30,8 @@ jobs:
       - name: Run tests
         run: python -m unittest
 
+      - name: Install Black
+        run: pip install black
+
       - name: Coding style
         run: python -m black --check ./
