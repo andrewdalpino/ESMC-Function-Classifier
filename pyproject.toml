@@ -11,7 +11,7 @@ dependencies = [
   "esm==3.2.0",
   "torch==2.7.1",
   "transformers==4.48.1",
-  "huggingface_hub==0.32.4"
+  "huggingface_hub==0.33.4"
 ]
 authors = [
   {name = "Andrew DalPino", email = "support@andrewdalpino.com"},
