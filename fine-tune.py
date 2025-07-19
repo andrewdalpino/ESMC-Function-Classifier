@@ -19,6 +19,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 from esm.tokenization import EsmSequenceTokenizer
 
+import obonet
+
 from src.esmc_function_classifier.model import EsmcGoTermClassifier
 from data import AmiGOBoost
 
@@ -42,6 +44,7 @@ def main():
         "--dataset_subset", default="all", choices=AmiGOBoost.AVAILABLE_SUBSETS
     )
     parser.add_argument("--num_dataset_processes", default=1, type=int)
+    parser.add_argument("--go_db_path", default="./dataset/go-basic.obo", type=str)
     parser.add_argument("--min_sequence_length", default=1, type=int)
     parser.add_argument("--max_sequence_length", default=2048, type=int)
     parser.add_argument("--unfreeze_last_k_layers", default=7, type=int)
@@ -109,9 +112,12 @@ def main():
 
     tokenizer = EsmSequenceTokenizer()
 
+    graph = obonet.read_obo(args.go_db_path)
+
     new_dataset = partial(
         AmiGOBoost,
         subset=args.dataset_subset,
+        graph=graph,
         tokenizer=tokenizer,
         min_sequence_length=args.min_sequence_length,
         max_sequence_length=args.max_sequence_length,

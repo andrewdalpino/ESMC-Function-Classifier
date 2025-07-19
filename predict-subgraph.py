@@ -1,7 +1,5 @@
 import random
 from functools import partial
-from collections import defaultdict
-from copy import copy
 
 from argparse import ArgumentParser
 

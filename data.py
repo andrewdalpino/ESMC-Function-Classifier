@@ -9,6 +9,10 @@ from torch.nn.utils.rnn import pad_sequence
 
 from esm.tokenization import EsmSequenceTokenizer
 
+import networkx as nx
+
+from networkx import DiGraph
+
 
 class AmiGO(Dataset):
     """
@@ -26,6 +30,7 @@ class AmiGO(Dataset):
         self,
         subset: str,
         split: str,
+        graph: DiGraph,
         tokenizer: EsmSequenceTokenizer,
         min_sequence_length: int = 1,
         max_sequence_length: int = 2048,
@@ -37,6 +42,11 @@ class AmiGO(Dataset):
 
         if split not in self.AVAILABLE_SPLITS:
             raise ValueError(f"Split '{split}' is invalid.")
+
+        if not nx.is_directed_acyclic_graph(graph):
+            raise ValueError(
+                "Invalid GO graph, must be a directed acyclic graph (DAG)."
+            )
 
         if min_sequence_length < 1:
             raise ValueError(
@@ -50,19 +60,24 @@ class AmiGO(Dataset):
 
         dataset = load_dataset(self.DATASET_NAME, subset)
 
-        terms_to_label_indices = {}
+        go_ids_to_label_indices = {}
 
         label_index = 0
 
         for subset in dataset.values():
             for sample in subset:
-                for term in sample["go_terms"]:
-                    if term not in terms_to_label_indices:
-                        terms_to_label_indices[term] = label_index
+                for go_id in sample["go_terms"]:
+                    if go_id in go_ids_to_label_indices:
+                        continue
 
-                        label_index += 1
+                    if go_id not in graph:
+                        continue
 
-        num_classes = len(terms_to_label_indices)
+                    go_ids_to_label_indices[go_id] = label_index
+
+                    label_index += 1
+
+        num_classes = len(go_ids_to_label_indices)
 
         dataset = dataset[split]
 
@@ -72,19 +87,20 @@ class AmiGO(Dataset):
         )
 
         self.dataset = dataset
+        self.graph = graph
         self.tokenizer = tokenizer
         self.min_sequence_length = min_sequence_length
         self.max_sequence_length = max_sequence_length
-        self.terms_to_label_indices = terms_to_label_indices
+        self.go_ids_to_label_indices = go_ids_to_label_indices
         self.num_classes = num_classes
 
     @property
-    def label_indices_to_terms(self):
+    def label_indices_to_go_ids(self):
         """
         Returns a dictionary mapping label indices to their corresponding gene ontology terms.
         """
 
-        return {index: term for term, index in self.terms_to_label_indices.items()}
+        return {index: go_id for go_id, index in self.go_ids_to_label_indices.items()}
 
     def collate_pad_right(self, batch):
         """
@@ -117,10 +133,11 @@ class AmiGO(Dataset):
 
         labels = [0.0] * self.num_classes
 
-        for term in sample["go_terms"]:
-            label_index = self.terms_to_label_indices[term]
+        for go_id in sample["go_terms"]:
+            if go_id in self.go_ids_to_label_indices:
+                label_index = self.go_ids_to_label_indices[go_id]
 
-            labels[label_index] = 1.0
+                labels[label_index] = 1.0
 
         x = torch.tensor(tokens, dtype=torch.int64)
         y = torch.tensor(labels, dtype=torch.float32)
