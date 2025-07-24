@@ -109,8 +109,8 @@ class TestAmiGOBoost(unittest.TestCase):
             )
 
     @patch("data.load_dataset")
-    def test_label_indices_to_terms(self, mock_load_dataset):
-        """Test the label_indices_to_terms property."""
+    def test_label_indices_to_go_ids(self, mock_load_dataset):
+        """Test the label_indices_to_go_ids property."""
         # Configure the mock
         mock_dataset = MagicMock()
         mock_dataset.values.return_value = [MockDataset(self.sample_data)]
@@ -119,13 +119,13 @@ class TestAmiGOBoost(unittest.TestCase):
 
         dataset = AmiGOBoost(subset="all", split="train", tokenizer=self.mock_tokenizer)
 
-        # Check that label_indices_to_terms is the inverse of terms_to_label_indices
+        # Check that label_indices_to_go_ids is the inverse of terms_to_label_indices
         for term, index in dataset.terms_to_label_indices.items():
-            self.assertEqual(dataset.label_indices_to_terms[index], term)
+            self.assertEqual(dataset.label_indices_to_go_ids[index], term)
 
         # Check lengths match
         self.assertEqual(
-            len(dataset.terms_to_label_indices), len(dataset.label_indices_to_terms)
+            len(dataset.terms_to_label_indices), len(dataset.label_indices_to_go_ids)
         )
 
     @patch("data.load_dataset")

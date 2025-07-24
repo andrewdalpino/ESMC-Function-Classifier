@@ -143,7 +143,7 @@ def main():
     model_args = {
         "model_name": args.base_model,
         "classifier_hidden_ratio": args.classifier_hidden_ratio,
-        "id2label": training.label_indices_to_terms,
+        "id2label": training.label_indices_to_go_ids,
         "use_flash_attention": args.use_flash_attention,
     }
 
