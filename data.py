@@ -14,6 +14,12 @@ import networkx as nx
 from networkx import DiGraph
 
 
+class AmiGOBoost("AmiGO"):
+    """The AmiGO dataset with additional phylogenetically-inferred annotations."""
+
+    DATASET_NAME = "andrewdalpino/AmiGO-Boost"
+
+
 class AmiGO(Dataset):
     """
     A collection of high-quality human-annotated protein sequences and their associated gene
@@ -149,9 +155,3 @@ class AmiGO(Dataset):
 
     def __len__(self):
         return len(self.dataset)
-
-
-class AmiGOBoost(AmiGO):
-    """The AmiGO dataset with additional phylogenetically-inferred annotations."""
-
-    DATASET_NAME = "andrewdalpino/AmiGO-Boost"

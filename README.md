@@ -120,19 +120,19 @@ python fine-tune.py --checkpoint_path="./checkpoints/checkpoint.pt" --resume
 
 | Argument | Default | Type | Description |
 |---|---|---|---|
-| --base_model | "esmc_300m" | str | The base model name, choose from `esmc_300m`, `esmc_600m`. |
+| --base_model | `esmc_300m` | str | The base model name, choose from `esmc_300m`, `esmc_600m`. |
 | --dataset_subset | "all" | str | The subset of the dataset to train on, choose from `all`, `mf` for molecular function, `cc` for cellular component, or `bp` for biological process. |
 | --num_dataset_processes | 1 | int | The number of CPU processes to use to process and load samples. |
 | --min_sequence_length | 1 | int | The minimum length of the input sequences. |
 | --max_sequence_length | 2048 | int | The maximum length of the input sequences. |
 | --unfreeze_last_k_layers | 7 | int | Fine-tune the last k layers of the pre-trained encoder network. |
-| --add_lora | False | bool | Should we add LoRA adapters to the frozen encoder layers? |
-| --lora_rank | 8 | int | The rank of the matrices used to approximate the weights of frozen encoder layers during fine-tuning. |
+| --quantization_aware_training| False | bool | Should we add fake quantized tensors to simulate quantized training? |
+| --qat_group_size | 32 | int | The number of channels to group together when computing quantizations. |
 | --batch_size | 8 | int | The number of samples to pass through the network at a time. |
 | --gradient_accumulation_steps | 16 | int | The number of batches to pass through the network before updating the weights. |
 | --max_gradient_norm | 1.0 | float | Clip gradients above this threshold norm before stepping. |
 | --learning_rate | 5e-4 | float | The learning rate of the Adam optimizer. |
-| --num_epochs | 40 | int | The number of epochs to train for. |
+| --num_epochs | 50 | int | The number of epochs to train for. |
 | --classifier_hidden_ratio | 1 | {1, 2, 4} | The ratio of hidden nodes to embedding dimensions in the classifier head. |
 | --eval_interval | 2 | int | Evaluate the model after this many epochs on the testing set. |
 | --checkpoint_interval | 2 | int | Save the model parameters to disk every this many epochs. |

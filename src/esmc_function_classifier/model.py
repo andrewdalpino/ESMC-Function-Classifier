@@ -6,8 +6,15 @@ from collections import defaultdict
 import torch
 
 from torch import Tensor
-from torch.nn import Module, Identity, Linear, Parameter
-from torch.nn.utils.parametrize import register_parametrization, remove_parametrizations
+from torch.nn import Module, Identity, Linear
+
+from torchao.quantization import quantize_
+
+from torchao.quantization.qat import (
+    FakeQuantizeConfig,
+    IntXQuantizationAwareTrainingConfig,
+    FromIntXQuantizationAwareTrainingConfig,
+)
 
 from esm.tokenization import EsmSequenceTokenizer
 from esm.models.esmc import ESMC
@@ -170,39 +177,15 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         self.graph = graph
 
     def freeze_base(self) -> None:
+        """Prevent the base model parameters from being updated during training."""
+
         for module in (self.embed, self.transformer):
             for param in module.parameters():
                 param.requires_grad = False
 
-    def add_lora_to_first_k_encoder_layers(self, k: int, rank: int) -> None:
-        """Reparameterize the first k encoder weights using LoRA adapters."""
-
-        for module in self.transformer.blocks[:k]:
-            register_parametrization(
-                module.attn.layernorm_qkv[1],
-                "weight",
-                LoRA.from_linear(module.attn.layernorm_qkv[1], 3 * rank),
-            )
-
-            register_parametrization(
-                module.attn.out_proj,
-                "weight",
-                LoRA.from_linear(module.attn.out_proj, rank),
-            )
-
-            register_parametrization(
-                module.ffn[1],
-                "weight",
-                LoRA.from_linear(module.ffn[1], rank),
-            )
-
-            register_parametrization(
-                module.ffn[3],
-                "weight",
-                LoRA.from_linear(module.ffn[3], rank),
-            )
-
     def unfreeze_last_k_encoder_layers(self, k: int) -> None:
+        """Allow the last k encoder layers to be trainable."""
+
         if k <= 0:
             return
 
@@ -210,15 +193,25 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
             for param in module.parameters():
                 param.requires_grad = True
 
-    def merge_lora_parameters(self) -> None:
-        """Merge the LoRA parameters with the original parameters."""
+    def add_fake_quantized_tensors(self, group_size: int) -> None:
+        """Prepare the model for quantization-aware training."""
 
-        for module in self.modules():
-            if hasattr(module, "parametrizations"):
-                lora_params = [name for name in module.parametrizations.keys()]
+        activation_config = FakeQuantizeConfig(
+            torch.int8, "per_token", is_symmetric=False
+        )
 
-                for name in lora_params:
-                    remove_parametrizations(module, name)
+        weight_config = FakeQuantizeConfig(torch.int4, group_size=group_size)
+
+        config = IntXQuantizationAwareTrainingConfig(activation_config, weight_config)
+
+        quantize_(self, config)
+
+    def remove_fake_quantized_tensors(self) -> None:
+        """Convert fake quantized tensors back to regular tensors."""
+
+        config = FromIntXQuantizationAwareTrainingConfig()
+
+        quantize_(self, config)
 
     def forward(
         self, sequence_tokens: Tensor, sequence_id: Tensor | None = None
@@ -308,26 +301,3 @@ class MLPClassifier(Module):
         z = self.linear2(z)
 
         return z
-
-
-class LoRA(Module):
-    """Low rank weight decomposition transformation."""
-
-    @classmethod
-    def from_linear(cls, linear: Linear, rank: int) -> "LoRA":
-        out_features, in_features = linear.weight.shape
-
-        return cls(in_features, out_features, rank)
-
-    def __init__(self, in_features: int, out_features: int, rank: int):
-        super().__init__()
-
-        assert rank > 0, "Rank must be greater than 0."
-
-        self.lora_a = Parameter(torch.randn(rank, in_features) / sqrt(rank))
-        self.lora_b = Parameter(torch.zeros(out_features, rank))
-
-    def forward(self, weight: Tensor) -> Tensor:
-        z = self.lora_b @ self.lora_a
-
-        return weight + z
