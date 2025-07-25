@@ -1,4 +1,3 @@
-from math import sqrt
 from copy import copy
 
 from collections import defaultdict
@@ -15,6 +14,8 @@ from torchao.quantization.qat import (
     IntXQuantizationAwareTrainingConfig,
     FromIntXQuantizationAwareTrainingConfig,
 )
+
+from torchao.quantization import Int8WeightOnlyConfig
 
 from esm.tokenization import EsmSequenceTokenizer
 from esm.models.esmc import ESMC
@@ -50,6 +51,8 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         "esmc_300m": "data/weights/esmc_300m_2024_12_v0.pth",
         "esmc_600m": "data/weights/esmc_600m_2024_12_v0.pth",
     }
+
+    AVAILABLE_CLASSIFIER_HIDDEN_RATIOS = {1, 2, 4}
 
     @classmethod
     def from_pretrained(cls, *args, **kwargs) -> "EsmcGoTermClassifier":
@@ -113,7 +116,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         id2label: dict[int, str],
         use_flash_attention: bool = True,
     ) -> None:
-        if classifier_hidden_ratio not in {1, 2, 4}:
+        if classifier_hidden_ratio not in self.AVAILABLE_CLASSIFIER_HIDDEN_RATIOS:
             raise ValueError(
                 f"Invalid classifier_hidden_ratio: {classifier_hidden_ratio}. "
                 "Must be one of (1, 2, 4)."
@@ -196,13 +199,9 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     def add_fake_quantized_tensors(self, group_size: int) -> None:
         """Prepare the model for quantization-aware training."""
 
-        activation_config = FakeQuantizeConfig(
-            torch.int8, "per_token", is_symmetric=False
-        )
+        weight_config = FakeQuantizeConfig(torch.int8, group_size=group_size)
 
-        weight_config = FakeQuantizeConfig(torch.int4, group_size=group_size)
-
-        config = IntXQuantizationAwareTrainingConfig(activation_config, weight_config)
+        config = IntXQuantizationAwareTrainingConfig(weight_config=weight_config)
 
         quantize_(self, config)
 
@@ -210,6 +209,13 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         """Convert fake quantized tensors back to regular tensors."""
 
         config = FromIntXQuantizationAwareTrainingConfig()
+
+        quantize_(self, config)
+
+    def quantize_weights(self, group_size: int) -> None:
+        """Quantize only the weights of the model using int8."""
+
+        config = Int8WeightOnlyConfig(group_size=group_size)
 
         quantize_(self, config)
 

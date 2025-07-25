@@ -49,7 +49,7 @@ def main():
     parser.add_argument("--max_sequence_length", default=2048, type=int)
     parser.add_argument("--unfreeze_last_k_layers", default=7, type=int)
     parser.add_argument("--quantization_aware_training", action="store_true")
-    parser.add_argument("--qat_group_size", default=32, type=int)
+    parser.add_argument("--quant_group_size", default=64, type=int)
     parser.add_argument("--learning_rate", default=5e-4, type=float)
     parser.add_argument("--max_gradient_norm", default=1.0, type=float)
     parser.add_argument("--batch_size", default=8, type=int)
@@ -156,7 +156,7 @@ def main():
     model.unfreeze_last_k_encoder_layers(args.unfreeze_last_k_layers)
 
     if args.quantization_aware_training:
-        model.add_fake_quantized_tensors(args.qat_group_size)
+        model.add_fake_quantized_tensors(args.quant_group_size)
 
     print(f"Number of trainable parameters: {model.num_trainable_parameters:,}")
 

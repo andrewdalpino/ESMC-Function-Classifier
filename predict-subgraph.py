@@ -27,6 +27,8 @@ def main():
     parser.add_argument(
         "--checkpoint_path", default="./checkpoints/checkpoint.pt", type=str
     )
+    parser.add_argument("--quantize_weights", action="store_true")
+    parser.add_argument("--quant_group_size", default=64, type=int)
     parser.add_argument("--go_db_path", default="./dataset/go-basic.obo", type=str)
     parser.add_argument("--context_length", default=2048, type=int)
     parser.add_argument("--top_p", default=0.5, type=float)
@@ -60,11 +62,14 @@ def main():
 
     model = EsmcGoTermClassifier.from_esm_pretrained(**model_args)
 
-    model = model.to(args.device)
-
     model.load_state_dict(checkpoint["model"])
 
-    model.merge_lora_parameters()
+    model.remove_fake_quantized_tensors()
+
+    if args.quantize_weights:
+        model.quantize_weights(group_size=args.quant_group_size)
+
+    model = model.to(args.device)
 
     model.eval()
 
