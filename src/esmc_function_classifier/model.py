@@ -15,7 +15,7 @@ from torchao.quantization.qat import (
     FromIntXQuantizationAwareTrainingConfig,
 )
 
-from torchao.quantization import Int8WeightOnlyConfig
+from torchao.quantization import Int4WeightOnlyConfig
 
 from esm.tokenization import EsmSequenceTokenizer
 from esm.models.esmc import ESMC
@@ -53,6 +53,8 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     }
 
     AVAILABLE_CLASSIFIER_HIDDEN_RATIOS = {1, 2, 4}
+
+    COMPATIBLE_QUANT_GROUP_SIZES = {6, 12, 24, 32, 48, 64, 96, 192}
 
     @classmethod
     def from_pretrained(cls, *args, **kwargs) -> "EsmcGoTermClassifier":
@@ -170,15 +172,6 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     def num_classes(self) -> int:
         return len(self.id2label)
 
-    def load_gene_ontology(self, graph: DiGraph) -> None:
-        """Load the Gene Ontology (GO) DAG."""
-
-        assert nx.is_directed_acyclic_graph(
-            graph
-        ), "Invalid GO graph, must be a directed acyclic graph (DAG)."
-
-        self.graph = graph
-
     def freeze_base(self) -> None:
         """Prevent the base model parameters from being updated during training."""
 
@@ -199,7 +192,11 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     def add_fake_quantized_tensors(self, group_size: int) -> None:
         """Prepare the model for quantization-aware training."""
 
-        weight_config = FakeQuantizeConfig(torch.int8, group_size=group_size)
+        assert (
+            group_size in self.COMPATIBLE_QUANT_GROUP_SIZES
+        ), "Invalid quant group size."
+
+        weight_config = FakeQuantizeConfig(torch.int4, group_size=group_size)
 
         config = IntXQuantizationAwareTrainingConfig(weight_config=weight_config)
 
@@ -213,11 +210,24 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         quantize_(self, config)
 
     def quantize_weights(self, group_size: int) -> None:
-        """Quantize only the weights of the model using int8."""
+        """Quantize the weights of the model."""
 
-        config = Int8WeightOnlyConfig(group_size=group_size)
+        assert (
+            group_size in self.COMPATIBLE_QUANT_GROUP_SIZES
+        ), "Invalid quant group size."
+
+        config = Int4WeightOnlyConfig(group_size=group_size)
 
         quantize_(self, config)
+
+    def load_gene_ontology(self, graph: DiGraph) -> None:
+        """Load the Gene Ontology (GO) DAG."""
+
+        assert nx.is_directed_acyclic_graph(
+            graph
+        ), "Invalid GO graph, must be a directed acyclic graph (DAG)."
+
+        self.graph = graph
 
     def forward(
         self, sequence_tokens: Tensor, sequence_id: Tensor | None = None
@@ -247,13 +257,13 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
         probabilities = torch.sigmoid(z).tolist()
 
-        go_term_probabilities = {
+        probabilities = {
             self.id2label[index]: probability
-            for index, probability in enumerate(probabilities)
+            for index, probability in enumerate(copy(probabilities))
             if probability > top_p
         }
 
-        return go_term_probabilities
+        return probabilities
 
     @torch.no_grad()
     def predict_subgraph(
@@ -263,25 +273,25 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
         assert self.graph is not None, "Gene Ontology graph is not loaded."
 
-        go_term_probabilities = self.predict_terms(sequence_tokens, top_p)
+        probabilities = self.predict_terms(sequence_tokens, top_p)
 
-        child_nodes = copy(go_term_probabilities)
+        child_nodes = copy(probabilities)
 
-        go_term_probabilities = defaultdict(float, go_term_probabilities)
+        probabilities = defaultdict(float, probabilities)
 
         # Fix up the predictions by leveraging the GO DAG hierarchy.
         for go_id, child_probability in child_nodes.items():
             for descendant in nx.descendants(self.graph, go_id):
-                parent_probability = go_term_probabilities[descendant]
+                parent_probability = probabilities[descendant]
 
-                go_term_probabilities[descendant] = max(
+                probabilities[descendant] = max(
                     parent_probability,
                     child_probability,
                 )
 
-        subgraph = self.graph.subgraph(go_term_probabilities.keys())
+        subgraph = self.graph.subgraph(probabilities.keys())
 
-        return subgraph, go_term_probabilities
+        return subgraph, probabilities
 
 
 class MLPClassifier(Module):
@@ -291,8 +301,11 @@ class MLPClassifier(Module):
         super().__init__()
 
         assert embedding_dimensions > 0, "embedding_dimensions must be greater than 0."
-        assert hidden_ratio in {1, 2, 4}, "hidden_ratio must be one of (1, 2, 4)."
         assert num_classes > 0, "num_classes must be greater than 0."
+
+        assert (
+            hidden_ratio in self.AVAILABLE_CLASSIFIER_HIDDEN_RATIOS
+        ), "hidden_ratio must be one of (1, 2, 4)."
 
         hidden_dimensions = hidden_ratio * embedding_dimensions
 

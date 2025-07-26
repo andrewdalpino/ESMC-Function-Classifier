@@ -116,6 +116,14 @@ If you would like to resume training from a previous checkpoint, make sure to ad
 python fine-tune.py --checkpoint_path="./checkpoints/checkpoint.pt" --resume
 ```
 
+### Quantization-tuning
+
+To simulate `int4` quantized weights during training we can insert fake quantized tensors into the model and train like normal. The quantized model should perform better at inference time when some or all training epochs employ quantization-aware training.
+
+```sh
+python fine-tune.py --quantization_aware_training --quant_group_size=64 --resume
+```
+
 ### Training Arguments
 
 | Argument | Default | Type | Description |
@@ -126,8 +134,8 @@ python fine-tune.py --checkpoint_path="./checkpoints/checkpoint.pt" --resume
 | --min_sequence_length | 1 | int | The minimum length of the input sequences. |
 | --max_sequence_length | 2048 | int | The maximum length of the input sequences. |
 | --unfreeze_last_k_layers | 7 | int | Fine-tune the last k layers of the pre-trained encoder network. |
-| --quantization_aware_training| False | bool | Should we add fake quantized tensors to simulate quantized training? |
-| --qat_group_size | 32 | int | The number of channels to group together when computing quantizations. |
+| --quantization_aware_training | False | bool | Should we add fake quantized tensors to simulate quantized training? |
+| --quant_group_size | 64 | int | The number of channels to group together when computing quantizations. |
 | --batch_size | 8 | int | The number of samples to pass through the network at a time. |
 | --gradient_accumulation_steps | 16 | int | The number of batches to pass through the network before updating the weights. |
 | --max_gradient_norm | 1.0 | float | Clip gradients above this threshold norm before stepping. |
@@ -170,6 +178,8 @@ Enter a sequence: MPNERLKWLMLFAAVALIACGSQTLAANPPDADQKGPVFLKEPTNRIDFSNSTG
 | Argument | Default | Type | Description |
 |---|---|---|---|
 | --checkpoint_path | "./checkpoints/checkpoint.pt" | str | The path to the training checkpoint. |
+| --quantize_weights | False | bool | Should we quantize the weights of the model? |
+| --quant_group_size | 64 | int | The number of channels to group together when computing quantizations. |
 | --go_db_path | "./dataset/go-basic.obo" | str | The path to the Gene Ontology basic obo file. |
 | --context_length | 2048 | int | The maximum length of the input sequences. |
 | --top_p | 0.5 | float | Only display nodes with the top `p` probability. |

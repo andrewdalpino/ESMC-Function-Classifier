@@ -8,6 +8,7 @@ import torch
 from src.esmc_function_classifier.model import EsmcGoTermClassifier
 
 from torch.cuda import is_available as cuda_is_available
+from torch.backends.mps import is_available as mps_is_available
 
 import obonet
 
@@ -48,6 +49,9 @@ def main():
     if "cuda" in args.device and not cuda_is_available():
         raise RuntimeError("Cuda is not available.")
 
+    if "mps" in args.device and not mps_is_available():
+        raise RuntimeError("MPS is not available.")
+
     torch.set_float32_matmul_precision("high")
 
     if args.seed is not None:
@@ -58,9 +62,7 @@ def main():
         args.checkpoint_path, map_location="cpu", weights_only=False
     )
 
-    model_args = checkpoint["model_args"]
-
-    model = EsmcGoTermClassifier.from_esm_pretrained(**model_args)
+    model = EsmcGoTermClassifier.from_esm_pretrained(**checkpoint["model_args"])
 
     model.load_state_dict(checkpoint["model"])
 
