@@ -49,7 +49,11 @@ def main():
     parser.add_argument("--max_sequence_length", default=2048, type=int)
     parser.add_argument("--unfreeze_last_k_layers", default=7, type=int)
     parser.add_argument("--quantization_aware_training", action="store_true")
-    parser.add_argument("--quant_group_size", default=64, type=int)
+    parser.add_argument(
+        "--quant_group_size",
+        default=64,
+        choices=EsmcGoTermClassifier.COMPATIBLE_QUANT_GROUP_SIZES,
+    )
     parser.add_argument("--learning_rate", default=5e-4, type=float)
     parser.add_argument("--max_gradient_norm", default=1.0, type=float)
     parser.add_argument("--batch_size", default=8, type=int)
@@ -109,6 +113,8 @@ def main():
     if args.seed is not None:
         torch.manual_seed(args.seed)
         random.seed(args.seed)
+
+    logger = SummaryWriter(args.run_dir_path)
 
     tokenizer = EsmSequenceTokenizer()
 
@@ -184,8 +190,6 @@ def main():
         print("Previous checkpoint resumed successfully")
 
     model.train()
-
-    logger = SummaryWriter(args.run_dir_path)
 
     print("Fine-tuning ...")
 

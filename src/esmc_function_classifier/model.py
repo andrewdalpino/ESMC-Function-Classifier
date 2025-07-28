@@ -15,7 +15,7 @@ from torchao.quantization.qat import (
     FromIntXQuantizationAwareTrainingConfig,
 )
 
-from torchao.quantization import Int4WeightOnlyConfig
+from torchao.quantization import Int8WeightOnlyConfig
 
 from esm.tokenization import EsmSequenceTokenizer
 from esm.models.esmc import ESMC
@@ -196,7 +196,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
             group_size in self.COMPATIBLE_QUANT_GROUP_SIZES
         ), "Invalid quant group size."
 
-        weight_config = FakeQuantizeConfig(torch.int4, group_size=group_size)
+        weight_config = FakeQuantizeConfig(torch.int8, group_size=group_size)
 
         config = IntXQuantizationAwareTrainingConfig(weight_config=weight_config)
 
@@ -216,7 +216,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
             group_size in self.COMPATIBLE_QUANT_GROUP_SIZES
         ), "Invalid quant group size."
 
-        config = Int4WeightOnlyConfig(group_size=group_size)
+        config = Int8WeightOnlyConfig(group_size=group_size)
 
         quantize_(self, config)
 
