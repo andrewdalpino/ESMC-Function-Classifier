@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "esmc-function-classifier"
 description = "An Evolutionary-scale Model (ESM) for protein function prediction from amino acid sequences using the Gene Ontology (GO)."
-version = "0.0.4"
+version = "0.0.5"
 requires-python = ">= 3.10"
 dependencies = [
   "esm==3.2.0",
@@ -14,7 +14,7 @@ dependencies = [
   "huggingface_hub==0.33.4"
 ]
 authors = [
-  {name = "Andrew DalPino", email = "support@andrewdalpino.com"},
+  {name = "Andrew DalPino"},
 ]
 readme = "README.md"
 license = {text = "MIT"}

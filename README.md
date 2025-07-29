@@ -14,12 +14,14 @@ From [CAFA 5 Protein Function Prediction](https://www.kaggle.com/competitions/ca
 
 The following pretrained models are available on HuggingFace Hub.
 
-| Name | Embedding Dim. | Attn. Heads | Encoder Layers | Context Length | Total Parameters |
-|---|---|---|---|---|---|
-| [andrewdalpino/ESMC-300M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-300M-Protein-Function) | 960 | 15 | 30 | 2048 | 361M |
-| [andrewdalpino/ESMC-600M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-600M-Protein-Function) | 1152 | 18 | 36 | 2048 | 644M |
+| Name | Embedding Dim. | Attn. Heads | Encoder Layers | Context Length | QAT | Total Parameters |
+|---|---|---|---|---|---|---|
+| [andrewdalpino/ESMC-300M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-300M-Protein-Function) | 960 | 15 | 30 | 2048 | None | 361M |
+| [andrewdalpino/ESMC-300M-QAT-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-300M-QAT-Protein-Function) | 960 | 15 | 30 | 2048 | int8w | 361M |
+| [andrewdalpino/ESMC-600M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-600M-Protein-Function) | 1152 | 18 | 36 | 2048 | None  | 644M |
+| [andrewdalpino/ESMC-600M-QAT-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-600M-QAT-Protein-Function) | 1152 | 18 | 36 | 2048 | int8w | 644M |
 
-## Basic Pretrained Example
+## Pretrained Example
 
 First, install the `esmc_function_classifier` package using [pip](https://pypi.org/project/pip/).
 
@@ -41,17 +43,18 @@ from esmc_function_classifier.model import EsmcGoTermClassifier
 
 model_name = "andrewdalpino/ESMC-300M-Protein-Function"
 
+# Visit https://geneontology.org/docs/download-ontology/ to download.
 go_db_path = "./dataset/go-basic.obo"
 
 sequence = "MPPKGHKKTADGDFRPVNSAGNTIQAKQKYSIDDLLYPKSTIKNLAKETLPDDAIISKDALTAIQRAATLFVSYMASHGNASAEAGGRKKIT"
 
 top_p = 0.5
 
-graph = obonet.read_obo(go_db_path)
-
 tokenizer = EsmSequenceTokenizer()
 
 model = EsmcGoTermClassifier.from_pretrained(model_name)
+
+graph = obonet.read_obo(go_db_path)
 
 model.load_gene_ontology(graph)
 
@@ -62,6 +65,14 @@ input_ids = torch.tensor(out["input_ids"], dtype=torch.int64)
 subgraph, go_term_probabilities = model.predict_subgraph(
     input_ids, top_p=top_p
 )
+```
+
+### Quantized Model
+
+To quantize the model weights using int8 call the `quantize_weights()` method. Any model can be quantized, but we recommend one that has been quantization-aware trained (QAT) for the best performance. The `group_size` argument controls the granularity at which quantization scales are computed.
+
+```python
+model.quantize_weights(group_size=64)
 ```
 
 ## Cloning the Repo

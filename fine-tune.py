@@ -58,7 +58,7 @@ def main():
     parser.add_argument("--max_gradient_norm", default=1.0, type=float)
     parser.add_argument("--batch_size", default=8, type=int)
     parser.add_argument("--gradient_accumulation_steps", default=16, type=int)
-    parser.add_argument("--num_epochs", default=40, type=int)
+    parser.add_argument("--num_epochs", default=50, type=int)
     parser.add_argument("--classifier_hidden_ratio", default=1, type=int)
     parser.add_argument("--use_flash_attention", default=True, type=bool)
     parser.add_argument("--eval_interval", default=2, type=int)
