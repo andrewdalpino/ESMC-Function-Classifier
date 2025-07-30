@@ -21,15 +21,15 @@ The following pretrained models are available on HuggingFace Hub.
 | [andrewdalpino/ESMC-600M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-600M-Protein-Function) | 1152 | 18 | 36 | 2048 | None  | 644M |
 | [andrewdalpino/ESMC-600M-QAT-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-600M-QAT-Protein-Function) | 1152 | 18 | 36 | 2048 | int8w | 644M |
 
-## Pretrained Example
+## Basic Pretrained Example
 
 First, install the `esmc_function_classifier` package using [pip](https://pypi.org/project/pip/).
 
 ```sh
-pip install esmc_function_classifier obonet
+pip install esmc_function_classifier
 ```
 
-Then, we'll load the model weights from HuggingFace Hub and the GO graph using `obonet`, tokenize the amino acid sequence, and infer the GO subgraph.
+Then, we'll load the model weights from HuggingFace Hub, tokenize the amino acid sequence, and infer the GO terms.
 
 ```python
 import torch
@@ -59,6 +59,10 @@ go_term_probabilities = model.predict_terms(
 ```
 
 You can also output the gene-ontology (GO) `networkx` subgraph for a given sequence like in the example below. You'll need an up-to-date gene ontology database that you can import using the `obonet` package.
+
+```sh
+pip install obonet
+```
 
 ```python
 import networkx as nx
