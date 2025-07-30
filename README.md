@@ -34,17 +34,12 @@ Then, we'll load the model weights from HuggingFace Hub and the GO graph using `
 ```python
 import torch
 
-import obonet
-
 from esm.tokenization import EsmSequenceTokenizer
 
 from esmc_function_classifier.model import EsmcGoTermClassifier
 
 
 model_name = "andrewdalpino/ESMC-300M-Protein-Function"
-
-# Visit https://geneontology.org/docs/download-ontology/ to download.
-go_db_path = "./dataset/go-basic.obo"
 
 sequence = "MPPKGHKKTADGDFRPVNSAGNTIQAKQKYSIDDLLYPKSTIKNLAKETLPDDAIISKDALTAIQRAATLFVSYMASHGNASAEAGGRKKIT"
 
@@ -54,17 +49,37 @@ tokenizer = EsmSequenceTokenizer()
 
 model = EsmcGoTermClassifier.from_pretrained(model_name)
 
-graph = obonet.read_obo(go_db_path)
-
-model.load_gene_ontology(graph)
-
 out = tokenizer(sequence, max_length=2048, truncation=True)
 
 input_ids = torch.tensor(out["input_ids"], dtype=torch.int64)
 
+go_term_probabilities = model.predict_terms(
+    input_ids, top_p=top_p
+)
+```
+
+You can also output the gene-ontology (GO) `networkx` subgraph for a given sequence like in the example below. You'll need an up-to-date gene ontology database that you can import using the `obonet` package.
+
+```python
+import networkx as nx
+
+import obonet
+
+
+# Visit https://geneontology.org/docs/download-ontology/ to download.
+go_db_path = "./dataset/go-basic.obo"
+
+graph = obonet.read_obo(go_db_path)
+
+model.load_gene_ontology(graph)
+
 subgraph, go_term_probabilities = model.predict_subgraph(
     input_ids, top_p=top_p
 )
+
+json = nx.node_link_data(subgraph)
+
+print(json)
 ```
 
 ### Quantized Model
