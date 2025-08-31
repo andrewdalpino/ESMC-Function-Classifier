@@ -17,9 +17,9 @@ The following pretrained models are available on HuggingFace Hub.
 | Name | Embedding Dim. | Attn. Heads | Encoder Layers | Context Length | QAT | Total Parameters |
 |---|---|---|---|---|---|---|
 | [andrewdalpino/ESMC-300M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-300M-Protein-Function) | 960 | 15 | 30 | 2048 | None | 361M |
-| [andrewdalpino/ESMC-300M-QAT-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-300M-QAT-Protein-Function) | 960 | 15 | 30 | 2048 | int8w | 361M |
+| [andrewdalpino/ESMC-300M-QAT-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-300M-QAT-Protein-Function) | 960 | 15 | 30 | 2048 | Int8W | 361M |
 | [andrewdalpino/ESMC-600M-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-600M-Protein-Function) | 1152 | 18 | 36 | 2048 | None  | 644M |
-| [andrewdalpino/ESMC-600M-QAT-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-600M-QAT-Protein-Function) | 1152 | 18 | 36 | 2048 | int8w | 644M |
+| [andrewdalpino/ESMC-600M-QAT-Protein-Function](https://huggingface.co/andrewdalpino/ESMC-600M-QAT-Protein-Function) | 1152 | 18 | 36 | 2048 | Int8W | 644M |
 
 ## Basic Pretrained Example
 

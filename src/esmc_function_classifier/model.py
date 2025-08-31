@@ -15,8 +15,6 @@ from torchao.quantization.qat import (
     FromIntXQuantizationAwareTrainingConfig,
 )
 
-from torchao.quantization import Int8WeightOnlyConfig
-
 from esm.tokenization import EsmSequenceTokenizer
 from esm.models.esmc import ESMC
 from esm.layers.blocks import SwiGLU
@@ -53,8 +51,6 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     }
 
     AVAILABLE_CLASSIFIER_HIDDEN_RATIOS = {1, 2, 4}
-
-    COMPATIBLE_QUANT_GROUP_SIZES = {6, 12, 24, 32, 48, 64, 96, 192}
 
     @classmethod
     def from_pretrained(cls, *args, **kwargs) -> "EsmcGoTermClassifier":
@@ -206,17 +202,6 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
         """Convert fake quantized tensors back to regular tensors."""
 
         config = FromIntXQuantizationAwareTrainingConfig()
-
-        quantize_(self, config)
-
-    def quantize_weights(self, group_size: int) -> None:
-        """Quantize the weights of the model."""
-
-        assert (
-            group_size in self.COMPATIBLE_QUANT_GROUP_SIZES
-        ), "Invalid quant group size."
-
-        config = Int8WeightOnlyConfig(group_size=group_size)
 
         quantize_(self, config)
 
