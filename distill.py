@@ -32,7 +32,7 @@ AVAILABLE_BASE_MODELS = EsmcGoTermClassifier.ESM_PRETRAINED_CONFIGS.keys()
 
 def main():
     parser = ArgumentParser(
-        description="Distill a larger fine-tuned model into a smaller one."
+        description="Distill a larger fine-tuned ESMC model into a smaller one."
     )
 
     parser.add_argument("--teacher_checkpoint", type=str, required=True)
@@ -47,13 +47,14 @@ def main():
     parser.add_argument("--quant_group_size", default=192, type=int)
     parser.add_argument("--learning_rate", default=5e-4, type=float)
     parser.add_argument("--max_gradient_norm", default=1.0, type=float)
-    parser.add_argument("--teacher_alpha", default=0.5, type=float)
+    parser.add_argument("--temperature", default=2.0, type=float)
+    parser.add_argument("--alpha", default=0.5, type=float)
     parser.add_argument("--batch_size", default=8, type=int)
     parser.add_argument("--gradient_accumulation_steps", default=16, type=int)
     parser.add_argument("--num_epochs", default=100, type=int)
     parser.add_argument("--embedding_dimensions", default=768, type=int)
     parser.add_argument("--num_heads", default=12, type=int)
-    parser.add_argument("--num_encoder_layers", default=10, type=int)
+    parser.add_argument("--num_encoder_layers", default=15, type=int)
     parser.add_argument("--classifier_hidden_ratio", default=1, type=int)
     parser.add_argument("--use_flash_attention", default=True, type=bool)
     parser.add_argument("--eval_interval", default=2, type=int)
@@ -153,6 +154,10 @@ def main():
 
     teacher.remove_fake_quantized_tensors()
 
+    teacher = teacher.to(args.device)
+
+    teacher.eval()
+
     print("Teacher model loaded successfully")
 
     student_args = {
@@ -173,7 +178,7 @@ def main():
 
     student = student.to(args.device)
 
-    loss_function = DistillationLoss(args.teacher_alpha)
+    loss_function = DistillationLoss(args.temperature, args.alpha)
 
     optimizer = AdamW(student.parameters(), lr=args.learning_rate)
 
