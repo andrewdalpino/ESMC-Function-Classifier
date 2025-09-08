@@ -7,7 +7,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module, Identity, Linear
 
-from torchao.quantization import quantize_
+from torchao.quantization import Int8WeightOnlyConfig, quantize_
 
 from torchao.quantization.qat import (
     FakeQuantizeConfig,
@@ -145,6 +145,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
         id2label = {int(index): str(label) for index, label in id2label.items()}
 
+        self.embedding_dimensions = embedding_dimensions
         self.id2label = id2label
         self.graph: DiGraph | None = None
 
@@ -188,9 +189,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
     def add_fake_quantized_tensors(self, group_size: int) -> None:
         """Prepare the model for quantization-aware training."""
 
-        assert (
-            group_size in self.COMPATIBLE_QUANT_GROUP_SIZES
-        ), "Invalid quant group size."
+        assert group_size % self.embedding_dimensions == 0, "Invalid quant group size."
 
         weight_config = FakeQuantizeConfig(torch.int8, group_size=group_size)
 
@@ -205,6 +204,15 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
         quantize_(self, config)
 
+    def quantize_weights(self, group_size: int) -> None:
+        """Quantize the weights of the model."""
+
+        assert group_size % self.embedding_dimensions == 0, "Invalid quant group size."
+
+        config = Int8WeightOnlyConfig(group_size=group_size)
+
+        quantize_(self, config)
+
     def load_gene_ontology(self, graph: DiGraph) -> None:
         """Load the Gene Ontology (GO) DAG."""
 
@@ -216,7 +224,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
     def forward(
         self, sequence_tokens: Tensor, sequence_id: Tensor | None = None
-    ) -> tuple[Tensor, Tensor]:
+    ) -> Tensor:
         out = super().forward(
             sequence_tokens=sequence_tokens,
             sequence_id=sequence_id,
@@ -229,7 +237,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
         return z
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def predict_terms(
         self, sequence_tokens: Tensor, top_p: float = 0.5
     ) -> dict[str, float]:
@@ -250,7 +258,7 @@ class EsmcGoTermClassifier(ESMC, PyTorchModelHubMixin):
 
         return probabilities
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def predict_subgraph(
         self, sequence_tokens: Tensor, top_p: float = 0.5
     ) -> tuple[DiGraph, dict[str, float]]:

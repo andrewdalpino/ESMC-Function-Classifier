@@ -5,7 +5,6 @@ from functools import partial
 
 import torch
 
-from torch.nn import BCEWithLogitsLoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torch.cuda import is_available as cuda_is_available, is_bf16_supported
@@ -23,6 +22,7 @@ import obonet
 
 from src.esmc_function_classifier.model import EsmcGoTermClassifier
 from data import AmiGOBoost
+from loss import DistillationLoss
 
 from tqdm import tqdm
 
@@ -32,14 +32,10 @@ AVAILABLE_BASE_MODELS = EsmcGoTermClassifier.ESM_PRETRAINED_CONFIGS.keys()
 
 def main():
     parser = ArgumentParser(
-        description="Fine-tune an ESMC model for gene ontology (GO) term prediction."
+        description="Distill a larger fine-tuned model into a smaller one."
     )
 
-    parser.add_argument(
-        "--base_model",
-        default="esmc_300m",
-        choices=AVAILABLE_BASE_MODELS,
-    )
+    parser.add_argument("--teacher_checkpoint", type=str, required=True)
     parser.add_argument(
         "--dataset_subset", default="all", choices=AmiGOBoost.AVAILABLE_SUBSETS
     )
@@ -47,14 +43,17 @@ def main():
     parser.add_argument("--go_db_path", default="./dataset/go-basic.obo", type=str)
     parser.add_argument("--min_sequence_length", default=1, type=int)
     parser.add_argument("--max_sequence_length", default=2048, type=int)
-    parser.add_argument("--unfreeze_last_k_layers", default=7, type=int)
     parser.add_argument("--quantization_aware_training", action="store_true")
     parser.add_argument("--quant_group_size", default=192, type=int)
     parser.add_argument("--learning_rate", default=5e-4, type=float)
     parser.add_argument("--max_gradient_norm", default=1.0, type=float)
+    parser.add_argument("--teacher_alpha", default=0.5, type=float)
     parser.add_argument("--batch_size", default=8, type=int)
     parser.add_argument("--gradient_accumulation_steps", default=16, type=int)
-    parser.add_argument("--num_epochs", default=50, type=int)
+    parser.add_argument("--num_epochs", default=100, type=int)
+    parser.add_argument("--embedding_dimensions", default=768, type=int)
+    parser.add_argument("--num_heads", default=12, type=int)
+    parser.add_argument("--num_encoder_layers", default=10, type=int)
     parser.add_argument("--classifier_hidden_ratio", default=1, type=int)
     parser.add_argument("--use_flash_attention", default=True, type=bool)
     parser.add_argument("--eval_interval", default=2, type=int)
@@ -142,31 +141,41 @@ def main():
     print(f"Training samples: {len(training.dataset):,}")
     print(f"Testing samples: {len(testing.dataset):,}")
 
-    model_args = {
-        "model_name": args.base_model,
+    checkpoint = torch.load(
+        args.teacher_checkpoint, map_location=args.device, weights_only=False
+    )
+
+    teacher_args = checkpoint["model_args"]
+
+    teacher = EsmcGoTermClassifier.from_esm_pretrained(**teacher_args)
+
+    teacher.load_state_dict(checkpoint["model"])
+
+    teacher.remove_fake_quantized_tensors()
+
+    print("Teacher model loaded successfully")
+
+    student_args = {
+        "embedding_dimensions": args.embedding_dimensions,
+        "num_heads": args.num_heads,
+        "num_encoder_layers": args.num_encoder_layers,
         "classifier_hidden_ratio": args.classifier_hidden_ratio,
         "id2label": training.label_indices_to_go_ids,
         "use_flash_attention": args.use_flash_attention,
     }
 
-    model = EsmcGoTermClassifier.from_esm_pretrained(**model_args)
-
-    print(f"Number of parameters: {model.num_params:,}")
-
-    model.freeze_base()
-
-    model.unfreeze_last_k_encoder_layers(args.unfreeze_last_k_layers)
+    student = EsmcGoTermClassifier(**student_args)
 
     if args.quantization_aware_training:
-        model.add_fake_quantized_tensors(args.quant_group_size)
+        student.add_fake_quantized_tensors(args.quant_group_size)
 
-    print(f"Number of trainable parameters: {model.num_trainable_parameters:,}")
+    print(f"Number of parameters: {student.num_params:,}")
 
-    model = model.to(args.device)
+    student = student.to(args.device)
 
-    loss_function = BCEWithLogitsLoss()
+    loss_function = DistillationLoss(args.teacher_alpha)
 
-    optimizer = AdamW(model.parameters(), lr=args.learning_rate)
+    optimizer = AdamW(student.parameters(), lr=args.learning_rate)
 
     precision_metric = BinaryPrecision().to(args.device)
     recall_metric = BinaryRecall().to(args.device)
@@ -178,14 +187,14 @@ def main():
             args.checkpoint_path, map_location=args.device, weights_only=False
         )
 
-        model.load_state_dict(checkpoint["model"])
+        student.load_state_dict(checkpoint["model"])
         optimizer.load_state_dict(checkpoint["optimizer"])
 
         starting_epoch += checkpoint["epoch"]
 
         print("Previous checkpoint resumed successfully")
 
-    model.train()
+    student.train()
 
     print("Fine-tuning ...")
 
@@ -200,9 +209,12 @@ def main():
             y = y.to(args.device, non_blocking=True)
 
             with amp_context:
-                y_pred = model.forward(x)
+                y_student = student.forward(x)
 
-                loss = loss_function(y_pred, y)
+                with torch.no_grad():
+                    y_teacher = teacher.forward(x)
+
+                loss = loss_function(y_student, y_teacher, y)
 
                 scaled_loss = loss / args.gradient_accumulation_steps
 
@@ -212,7 +224,7 @@ def main():
             total_batches += 1
 
             if step % args.gradient_accumulation_steps == 0:
-                norm = clip_grad_norm_(model.parameters(), args.max_gradient_norm)
+                norm = clip_grad_norm_(student.parameters(), args.max_gradient_norm)
 
                 optimizer.step()
 
@@ -234,14 +246,14 @@ def main():
         )
 
         if epoch % args.eval_interval == 0:
-            model.eval()
+            student.eval()
 
             for x, y in tqdm(test_loader, desc="Testing", leave=False):
                 x = x.to(args.device, non_blocking=True)
                 y = y.to(args.device, non_blocking=True)
 
                 with torch.no_grad(), amp_context:
-                    y_pred = model.forward(x)
+                    y_pred = student.forward(x)
 
                     y_prob = torch.sigmoid(y_pred)
 
@@ -264,13 +276,13 @@ def main():
             precision_metric.reset()
             recall_metric.reset()
 
-            model.train()
+            student.train()
 
         if epoch % args.checkpoint_interval == 0:
             checkpoint = {
                 "epoch": epoch,
-                "model_args": model_args,
-                "model": model.state_dict(),
+                "student_args": student_args,
+                "student": student.state_dict(),
                 "optimizer": optimizer.state_dict(),
             }
 
