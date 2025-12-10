@@ -3,16 +3,13 @@ requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "esmc-function-classifier"
-description = "An Evolutionary-scale Model (ESM) for protein function prediction from amino acid sequences using the Gene Ontology (GO)."
-version = "0.0.8"
+name = "prot-hash"
+description = "A protein hashing library for fast and scalable protein sequence search."
+version = "0.0.1"
 requires-python = ">= 3.10"
 dependencies = [
-  "esm>=3.2.0, <4.0.0",
   "torch>=2.7.1, <3.0.0",
-  "torchao>=0.12.0, <0.13.0",
   "huggingface_hub>=0.33.4, <0.34.0",
-  "networkx>=3.4.2, <4.0.0"
 ]
 authors = [
   {name = "Andrew DalPino"},
@@ -25,6 +22,6 @@ dev = ["mypy", "black", "matplotlib"]
 test = ["mypy", "black"]
 
 [project.urls]
-Homepage = "https://github.com/andrewdalpino/esmc-function-classifier"
-Documentation = "https://github.com/andrewdalpino/esmc-function-classifier/README.md"
-Source = "https://github.com/andrewdalpino/esmc-function-classifier"
+Homepage = "https://github.com/andrewdalpino/prot-hash"
+Documentation = "https://github.com/andrewdalpino/prot-hash/README.md"
+Source = "https://github.com/andrewdalpino/prot-hash"
