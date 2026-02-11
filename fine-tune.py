@@ -26,7 +26,6 @@ from data import AmiGOBoost
 
 from tqdm import tqdm
 
-
 AVAILABLE_BASE_MODELS = EsmcGoTermClassifier.ESM_PRETRAINED_CONFIGS.keys()
 
 
